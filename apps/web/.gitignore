@@ -46,3 +46,7 @@ next-env.d.ts
 /data/*.db-wal
 /data/*.db-shm
 !/data/.gitkeep
+
+# uploaded user photos
+/public/uploads/*
+!/public/uploads/.gitkeep
