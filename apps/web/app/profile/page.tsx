@@ -90,7 +90,8 @@ export default function ProfilePage() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-8 sm:px-6 sm:py-12">
         <p className="text-[11px] uppercase tracking-[0.3em] text-accent">Анкета</p>
-        <h1 className="mt-2 font-display text-4xl italic tracking-tight text-ink">Твоя мерка</h1>
+        <div className="mt-2 h-[2px] w-12 bg-gradient-to-r from-gold to-transparent" />
+        <h1 className="mt-3 font-display text-4xl italic tracking-tight text-ink">Твоя мерка</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">
           Это нужно, чтобы точнее подобрать образ и подготовить модель для примерки.
         </p>

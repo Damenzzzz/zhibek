@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FittingRoomNavLink } from "@/components/FittingRoomNavLink";
 
 export function SiteHeader() {
   return (
@@ -10,9 +11,13 @@ export function SiteHeader() {
             жібек · silk
           </span>
         </Link>
-        <nav className="text-sm text-ink-soft">
+        <nav className="flex items-center gap-5 text-sm text-ink-soft">
           <Link href="/catalog" className="transition-colors hover:text-accent">
             Каталог
+          </Link>
+          <FittingRoomNavLink />
+          <Link href="/tryon" className="hidden transition-colors hover:text-accent sm:inline">
+            Примерка
           </Link>
         </nav>
       </div>

@@ -1,7 +1,7 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { syncCatalogItems } = await import("./lib/syncCatalog");
-    const result = syncCatalogItems();
+    const result = await syncCatalogItems();
     if (result.skipped) {
       console.log("[catalog sync] data/catalog/items.db не найден, пропускаю");
     } else {

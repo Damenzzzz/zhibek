@@ -8,8 +8,10 @@ __pycache__/
 .venv/
 venv/
 
-# data (raw photos and generated catalog are not committed)
+# data (raw source collages are not committed — large, only needed locally
+# for scripts/process_photos.py). data/catalog IS committed: it's the small
+# (~KB-MB) processed output (cropped photos + items.db) that the deployed
+# app needs to read at runtime, since Vercel serverless functions can't
+# write/persist a local file the way a normal server can.
 /data/raw/*
 !/data/raw/.gitkeep
-/data/catalog/*
-!/data/catalog/.gitkeep

@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --bone: #f3ede2;
-  --bone-soft: #ece3d4;
-  --ink: #211d17;
-  --ink-soft: #6b6255;
-  --accent: #ad4a26;
-  --accent-soft: #e4d9c6;
-  --line: #ddd2bd;
+  --bone: #f7f2e7;
+  --bone-soft: #eee5d2;
+  --ink: #1e2320;
+  --ink-soft: #666f65;
+  --accent: #24513f;
+  --accent-soft: #dbe6dd;
+  --gold: #a9863f;
+  --line: #ddd3ba;
 }
 
 @theme inline {
@@ -17,29 +18,26 @@
   --color-ink-soft: var(--ink-soft);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--gold);
   --color-line: var(--line);
   --font-display: var(--font-cormorant);
   --font-sans: var(--font-onest);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bone: #181511;
-    --bone-soft: #211d17;
-    --ink: #efe7d9;
-    --ink-soft: #a89c88;
-    --accent: #e2683c;
-    --accent-soft: #332821;
-    --line: #3a3228;
-  }
+/* Сайт всегда светлый, независимо от системной темы браузера — это
+   осознанный выбор дизайна, а не забытый dark-mode. */
+:root {
+  color-scheme: light;
 }
 
 body {
   background-color: var(--bone);
   color: var(--ink);
   font-family: var(--font-sans);
-  background-image: radial-gradient(circle at 1.5px 1.5px, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 0);
-  background-size: 22px 22px;
+  background-image:
+    radial-gradient(circle at 1.5px 1.5px, color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 0),
+    linear-gradient(180deg, color-mix(in srgb, var(--gold) 6%, transparent), transparent 320px);
+  background-size: 22px 22px, 100% 100%;
 }
 
 ::selection {

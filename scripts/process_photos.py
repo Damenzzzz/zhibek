@@ -8,12 +8,14 @@
 Запуск:
     python scripts/process_photos.py
     python scripts/process_photos.py --model gemini-2.5-flash --limit 3
+    python scripts/process_photos.py --force   # переобработать все фото заново
 
 Идемпотентно: уже обработанные фото (по имени файла, таблица processed_photos)
-повторно не отправляются в Gemini.
+повторно не отправляются в Gemini, если не передан --force.
 """
 
 import argparse
+import io
 import json
 import os
 import sqlite3
@@ -40,6 +42,15 @@ CATALOG_DIR = ROOT / "data" / "catalog"
 DB_PATH = CATALOG_DIR / "items.db"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 DEFAULT_MODEL = "gemini-flash-latest"
+DEFAULT_RETOUCH_MODEL = "gemini-2.5-flash-image"
+
+RETOUCH_PROMPT = """\
+На этом фото товара наложен текст (название, артикул, цена). Убери весь текст
+и любые надписи с изображения, восстановив то, что было под ними, в едином
+стиле с окружающей тканью/фоном. Сам товар (форма, цвет, фактура, поза модели,
+если она есть) должен остаться визуально идентичным — не меняй ничего, кроме
+удаления текста. Не добавляй новых объектов, не меняй кадрирование и пропорции.
+"""
 
 Category = Literal["top", "bottom", "outerwear", "shoes", "bag", "accessory"]
 
@@ -53,6 +64,13 @@ PROMPT = """\
 Приоритет — товары в отдельных вырезанных фото справа (они уже разделены и
 их проще ограничить рамкой), но если справа не хватает крупных предметов,
 которые хорошо видны и на модели, добавь и их.
+
+ВАЖНО про рамку: у некоторых товаров справа под фото или поверх него есть
+текстовая подпись (название, "Арт.<номер>", цена вроде "3915 руб."). Рамка
+должна ограничивать ТОЛЬКО само изображение товара — не включай в неё текст
+подписи ни снизу, ни сверху, ни сбоку. Если подпись наложена прямо на фото
+(например, внизу кадра), обрежь рамку по верхней границе текста, чтобы текст
+не попал в кадр.
 
 Для каждого найденного предмета верни:
 - box_2d: [ymin, xmin, ymax, xmax] в нормализованных координатах 0-1000
@@ -108,6 +126,19 @@ def already_processed(conn: sqlite3.Connection, filename: str) -> bool:
     return row is not None
 
 
+def clear_previous_results(conn: sqlite3.Connection, filename: str) -> None:
+    """Удаляет старые товары и файлы для source_photo перед переобработкой (--force)."""
+    rows = conn.execute(
+        "SELECT image_path FROM items WHERE source_photo = ?", (filename,)
+    ).fetchall()
+    for (relative_path,) in rows:
+        old_file = ROOT / relative_path
+        old_file.unlink(missing_ok=True)
+    conn.execute("DELETE FROM items WHERE source_photo = ?", (filename,))
+    conn.execute("DELETE FROM processed_photos WHERE source_photo = ?", (filename,))
+    conn.commit()
+
+
 def sanitize_id(value: str) -> str:
     safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in value.strip())
     return safe.strip("_") or uuid.uuid4().hex[:8]
@@ -154,11 +185,40 @@ def detect_items(client: genai.Client, model: str, image_path: Path) -> list[Det
     return [DetectedItem.model_validate(item) for item in raw]
 
 
+def remove_watermark(client: genai.Client, model: str, crop: Image.Image) -> Optional[Image.Image]:
+    """Пытается убрать вписанный в фото текст (цена/артикул) через image-editing
+    модель Gemini. Возвращает None при любой проблеме — вызывающий код в этом
+    случае должен оставить исходный кроп как есть."""
+    buffer = io.BytesIO()
+    crop.save(buffer, "JPEG", quality=95)
+
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=[
+                RETOUCH_PROMPT,
+                types.Part.from_bytes(data=buffer.getvalue(), mime_type="image/jpeg"),
+            ],
+            config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
+        )
+    except Exception as exc:  # noqa: BLE001 - ретушь необязательна, не должна ронять пайплайн
+        print(f"    ! ретушь не удалась: {exc}")
+        return None
+
+    for part in response.parts or []:
+        if part.inline_data:
+            return Image.open(io.BytesIO(part.inline_data.data)).convert("RGB")
+
+    print("    ! ретушь: модель не вернула изображение")
+    return None
+
+
 def process_photo(
     conn: sqlite3.Connection,
     client: genai.Client,
     model: str,
     photo_path: Path,
+    retouch_model: Optional[str] = None,
 ) -> dict[str, int]:
     look_id = photo_path.stem
     image = Image.open(photo_path).convert("RGB")
@@ -175,6 +235,11 @@ def process_photo(
             continue
 
         crop = image.crop((x1, y1, x2, y2))
+
+        if retouch_model:
+            retouched = remove_watermark(client, retouch_model, crop)
+            if retouched is not None:
+                crop = retouched
 
         item_id = sanitize_id(item.sku_id) if item.sku_id else f"{sanitize_id(look_id)}-item{idx:02d}"
         category_dir = CATALOG_DIR / item.category
@@ -217,6 +282,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default=DEFAULT_MODEL, help="Gemini модель (по умолчанию %(default)s)")
     parser.add_argument("--limit", type=int, default=None, help="обработать не более N новых фото")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="переобработать уже обработанные фото заново (старые товары и файлы удаляются)",
+    )
+    parser.add_argument(
+        "--retouch",
+        action="store_true",
+        help="убрать наложенный текст (цена/артикул) с каждого кропа через image-editing модель (доп. вызовы Gemini)",
+    )
+    parser.add_argument(
+        "--retouch-model",
+        default=DEFAULT_RETOUCH_MODEL,
+        help="модель для ретуши (по умолчанию %(default)s)",
+    )
     args = parser.parse_args()
 
     load_dotenv(ROOT / ".env")
@@ -237,8 +317,12 @@ def main() -> None:
     photos = sorted(
         p for p in RAW_DIR.iterdir() if p.suffix.lower() in IMAGE_EXTENSIONS
     )
-    new_photos = [p for p in photos if not already_processed(conn, p.name)]
-    skipped = len(photos) - len(new_photos)
+    if args.force:
+        new_photos = photos
+        skipped = 0
+    else:
+        new_photos = [p for p in photos if not already_processed(conn, p.name)]
+        skipped = len(photos) - len(new_photos)
     if args.limit is not None:
         new_photos = new_photos[: args.limit]
 
@@ -247,8 +331,16 @@ def main() -> None:
     summary: list[tuple[str, dict[str, int]]] = []
     for photo_path in new_photos:
         print(f"\nОбрабатываю {photo_path.name}...")
+        if args.force:
+            clear_previous_results(conn, photo_path.name)
         try:
-            counts = process_photo(conn, client, args.model, photo_path)
+            counts = process_photo(
+                conn,
+                client,
+                args.model,
+                photo_path,
+                retouch_model=args.retouch_model if args.retouch else None,
+            )
         except Exception as exc:  # noqa: BLE001 - продолжаем со следующим фото
             print(f"  ! ошибка при обработке {photo_path.name}: {exc}", file=sys.stderr)
             continue

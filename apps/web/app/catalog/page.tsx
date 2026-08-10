@@ -24,7 +24,8 @@ export default async function CatalogPage({
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="mb-8 max-w-xl">
           <p className="text-[11px] uppercase tracking-[0.3em] text-accent">Каталог</p>
-          <h1 className="mt-2 font-display text-4xl italic tracking-tight text-ink sm:text-5xl">
+          <div className="mt-2 h-[2px] w-12 bg-gradient-to-r from-gold to-transparent" />
+          <h1 className="mt-3 font-display text-4xl italic tracking-tight text-ink sm:text-5xl">
             Образы недели
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">

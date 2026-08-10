@@ -1,46 +1,15 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-
-const STORAGE_KEY = "zhibek:fitting-room";
-const listeners = new Set<() => void>();
-
-function readFittingRoom(): string[] {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function subscribe(callback: () => void) {
-  listeners.add(callback);
-  return () => listeners.delete(callback);
-}
-
-function setAdded(itemId: string, shouldAdd: boolean) {
-  const current = readFittingRoom();
-  const next = shouldAdd ? [...current, itemId] : current.filter((id) => id !== itemId);
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  listeners.forEach((notify) => notify());
-}
-
-function getServerSnapshot() {
-  return false;
-}
+import { useFittingRoomIds, toggleFittingRoomItem } from "@/lib/fittingRoomStorage";
 
 export function AddToFittingRoomButton({ itemId }: { itemId: string }) {
-  const added = useSyncExternalStore(
-    subscribe,
-    () => readFittingRoom().includes(itemId),
-    getServerSnapshot
-  );
+  const ids = useFittingRoomIds();
+  const added = ids.includes(itemId);
 
   return (
     <button
       type="button"
-      onClick={() => setAdded(itemId, !added)}
+      onClick={() => toggleFittingRoomItem(itemId, !added)}
       className={
         "w-full border px-6 py-3 text-sm font-medium uppercase tracking-[0.1em] transition-colors sm:w-auto " +
         (added

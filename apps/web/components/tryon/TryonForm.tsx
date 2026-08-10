@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
@@ -112,8 +113,11 @@ async function downloadImage(url: string, filename: string) {
 
 export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Item[]; looks: Look[] }) {
   const profile = useStoredProfile();
-  const [topId, setTopId] = useState<string | null>(null);
-  const [bottomId, setBottomId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  // Примерочная (см. app/fitting-room) может передать сюда предвыбор через
+  // ?top=/?bottom= — читаем один раз при монтировании.
+  const [topId, setTopId] = useState<string | null>(() => searchParams.get("top"));
+  const [bottomId, setBottomId] = useState<string | null>(() => searchParams.get("bottom"));
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TryonResult | null>(null);

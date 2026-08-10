@@ -19,7 +19,7 @@ interface SourceItemRow {
   source_photo: string;
 }
 
-export function syncCatalogItems(): { synced: number; skipped: boolean } {
+export async function syncCatalogItems(): Promise<{ synced: number; skipped: boolean }> {
   if (!fs.existsSync(SOURCE_DB_PATH)) {
     return { synced: 0, skipped: true };
   }
@@ -36,9 +36,10 @@ export function syncCatalogItems(): { synced: number; skipped: boolean } {
     sourceDb.close();
   }
 
-  db.transaction((tx) => {
+  await db.transaction(async (tx) => {
     for (const item of rows) {
-      tx.insert(catalogItems)
+      await tx
+        .insert(catalogItems)
         .values({
           id: item.id,
           sku: item.sku,
@@ -60,8 +61,7 @@ export function syncCatalogItems(): { synced: number; skipped: boolean } {
             lookId: item.look_id,
             sourcePhoto: item.source_photo,
           },
-        })
-        .run();
+        });
     }
   });
 

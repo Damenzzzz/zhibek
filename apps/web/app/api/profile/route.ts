@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { db } from "@/lib/db";
 import { users } from "@/lib/schema";
 import { generateModelFromDescription, FashnApiError } from "@/lib/fashn";
+import { saveUpload } from "@/lib/storage";
 
 const profileFieldsSchema = z.object({
   height_cm: z.coerce.number().int().min(50).max(250),
@@ -20,24 +18,15 @@ const PHOTO_MIME_TO_EXT: Record<string, string> = {
   "image/webp": "webp",
 };
 
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
-
-async function saveBufferToUploads(buffer: Buffer, ext: string): Promise<string> {
-  await mkdir(UPLOADS_DIR, { recursive: true });
-  const filename = `${randomUUID()}.${ext}`;
-  await writeFile(path.join(UPLOADS_DIR, filename), buffer);
-  return `/uploads/${filename}`;
-}
-
 async function downloadGeneratedModel(imageUrl: string): Promise<string> {
   const response = await fetch(imageUrl);
   if (!response.ok) {
     throw new FashnApiError("ModelDownloadFailed", "Не удалось скачать сгенерированную модель");
   }
-  const contentType = response.headers.get("content-type")?.split(";")[0] ?? "";
+  const contentType = response.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
   const ext = PHOTO_MIME_TO_EXT[contentType] ?? "jpg";
   const buffer = Buffer.from(await response.arrayBuffer());
-  return saveBufferToUploads(buffer, ext);
+  return saveUpload(buffer, ext, contentType);
 }
 
 export async function POST(request: Request) {
@@ -91,7 +80,7 @@ export async function POST(request: Request) {
       );
     }
     const buffer = Buffer.from(await photo.arrayBuffer());
-    photoPath = await saveBufferToUploads(buffer, ext);
+    photoPath = await saveUpload(buffer, ext, photo.type);
   } else if (photo !== null && !(photo instanceof File)) {
     return NextResponse.json(
       { error: "invalid_photo", message: "Поле photo должно быть файлом" },

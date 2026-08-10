@@ -113,11 +113,9 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function logCreditUsage(endpoint: FashnModelName): void {
+async function logCreditUsage(endpoint: FashnModelName): Promise<void> {
   try {
-    db.insert(creditUsage)
-      .values({ endpoint, creditsSpent: CREDIT_COST_ESTIMATE[endpoint] })
-      .run();
+    await db.insert(creditUsage).values({ endpoint, creditsSpent: CREDIT_COST_ESTIMATE[endpoint] });
   } catch (err) {
     console.error("[fashn] не удалось записать расход кредитов:", err);
   }
@@ -133,7 +131,7 @@ async function submitPrediction(modelName: FashnModelName, inputs: Record<string
   }
   // Кредиты списываются в момент принятия запроса в обработку, поэтому
   // учитываем расход сразу после успешной постановки в очередь.
-  logCreditUsage(modelName);
+  await logCreditUsage(modelName);
   return data.id;
 }
 

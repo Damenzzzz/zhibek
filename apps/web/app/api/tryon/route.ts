@@ -58,7 +58,10 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = request.nextUrl.origin;
-  const modelImageUrl = `${origin}${user.photoPath}`;
+  // photoPath — либо локальный относительный путь (/uploads/...), либо уже
+  // полный URL Vercel Blob (см. lib/storage.ts) — на проде абсолютные URL
+  // прогонять через origin не нужно.
+  const modelImageUrl = user.photoPath.startsWith("http") ? user.photoPath : `${origin}${user.photoPath}`;
 
   try {
     let resultUrl: string;

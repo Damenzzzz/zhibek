@@ -2,7 +2,7 @@
 // без запуска Next.js сервера. Запуск: npm run sync:catalog
 import { syncCatalogItems } from "../lib/syncCatalog";
 
-const result = syncCatalogItems();
+const result = await syncCatalogItems();
 if (result.skipped) {
   console.log("data/catalog/items.db не найден, пропускаю");
 } else {

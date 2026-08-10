@@ -17,7 +17,7 @@ export function ProductCard({ id, category, color, description, imagePath }: Pro
 
   return (
     <Link href={`/catalog/${id}`} className="group block">
-      <div className="relative aspect-[3/4] overflow-hidden border border-line bg-bone-soft">
+      <div className="relative aspect-[3/4] overflow-hidden border border-line bg-bone-soft shadow-[0_1px_2px_rgba(30,35,32,0.05)] transition-shadow duration-300 group-hover:shadow-[0_18px_30px_-14px_rgba(30,35,32,0.28)]">
         <SkeletonImage
           src={catalogImageUrl(imagePath)}
           alt={description ?? label}

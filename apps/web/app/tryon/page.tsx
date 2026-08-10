@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
@@ -29,12 +30,15 @@ export default async function TryonPage() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
         <p className="text-[11px] uppercase tracking-[0.3em] text-accent">Примерка</p>
-        <h1 className="mt-2 font-display text-4xl italic tracking-tight text-ink">Собери образ</h1>
+        <div className="mt-2 h-[2px] w-12 bg-gradient-to-r from-gold to-transparent" />
+        <h1 className="mt-3 font-display text-4xl italic tracking-tight text-ink">Собери образ</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">
           Выбери верх и/или низ по отдельности или возьми целиком готовый образ.
         </p>
 
-        <TryonForm tops={tops} bottoms={bottoms} looks={looks} />
+        <Suspense fallback={null}>
+          <TryonForm tops={tops} bottoms={bottoms} looks={looks} />
+        </Suspense>
       </main>
     </div>
   );

@@ -57,7 +57,8 @@ export default async function ProductPage({
 
           <div className="flex flex-col">
             <p className="text-[11px] uppercase tracking-[0.3em] text-accent">{label}</p>
-            <h1 className="mt-2 font-display text-3xl italic leading-tight text-ink sm:text-4xl">
+            <div className="mt-2 h-[2px] w-12 bg-gradient-to-r from-gold to-transparent" />
+            <h1 className="mt-3 font-display text-3xl italic leading-tight text-ink sm:text-4xl">
               {item.description ?? label}
             </h1>
 
