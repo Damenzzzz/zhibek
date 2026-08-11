@@ -25,15 +25,28 @@ interface SourceItemRow {
 }
 
 function copyCatalogImages(rows: SourceItemRow[]): void {
+  // На Vercel /var/task — read-only FS: сюда писать нельзя и не нужно,
+  // public/catalog уже закоммичен и уезжает в деплой статикой (см. комментарий
+  // у PUBLIC_CATALOG_DIR). Раньше copyFileSync здесь падал с EROFS и ронял
+  // instrumentation hook на каждом запросе к /catalog.
+  if (process.env.VERCEL) return;
+
   const marker = "data/catalog/";
   for (const item of rows) {
     const idx = item.image_path.indexOf(marker);
     const relative = idx >= 0 ? item.image_path.slice(idx + marker.length) : item.image_path;
     const from = path.join(SOURCE_DIR, relative);
     const to = path.join(PUBLIC_CATALOG_DIR, relative);
-    if (!fs.existsSync(from)) continue;
-    fs.mkdirSync(path.dirname(to), { recursive: true });
-    fs.copyFileSync(from, to);
+    if (!fs.existsSync(from) || fs.existsSync(to)) continue;
+    try {
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.copyFileSync(from, to);
+    } catch (err) {
+      // Копирование — best-effort страховка для локальной разработки; ошибка
+      // записи (например, read-only FS в незапланированной среде) не должна
+      // ронять весь сервер.
+      console.warn(`[catalog sync] не удалось скопировать ${relative}:`, err);
+    }
   }
 }
 
