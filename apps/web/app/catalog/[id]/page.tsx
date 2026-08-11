@@ -30,8 +30,11 @@ export default async function ProductPage({
   // getMatchingItems уже приоритизирует товары того же образа, так что здесь
   // отфильтровываем то, что и так показано в "Часть образа" выше, чтобы блоки
   // не дублировались — "Дополните образ" остаётся только для новых предложений.
+  // Лимит увеличен на размер образа: getMatchingItems сам может заполнить
+  // весь лимит товарами того же lookId, и без запаса пост-фильтрация здесь
+  // вырежет их все, оставив пустой список при образах из 7+ предметов.
   const lookItemIds = new Set(lookItems.map((i) => i.id));
-  const matches = (await getMatchingItems(item.id)).filter((i) => !lookItemIds.has(i.id));
+  const matches = (await getMatchingItems(item.id, 6 + lookItems.length)).filter((i) => !lookItemIds.has(i.id));
 
   const label = CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category;
   const swatch = colorSwatch(item.color);

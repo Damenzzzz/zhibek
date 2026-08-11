@@ -7,7 +7,7 @@ const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 3 * 60 * 1000;
 
 export type TryOnCategory = "tops" | "bottoms" | "one-pieces" | "auto";
-type FashnModelName = "tryon-v1.6" | "model-create" | "face-to-model";
+type FashnModelName = "tryon-v1.6" | "tryon-max" | "model-create" | "face-to-model";
 
 type PredictionStatus = "starting" | "in_queue" | "processing" | "completed" | "failed" | "canceled" | "time_out";
 
@@ -25,8 +25,11 @@ interface FashnResponseBody {
 // (она зависит от generation_mode/resolution, которые мы не задаём — действует
 // "автоматическое" ценообразование). Это грубые оценки для простого учёта
 // бюджета, а не точные цифры со счёта FASHN. См. заметки по бюджету в плане проекта.
+// tryon-max по офиц. прайсу FASHN стоит 1-5 кредитов в зависимости от
+// resolution/generation_mode (мы их не задаём — действует дефолт fast/1k = 1).
 const CREDIT_COST_ESTIMATE: Record<FashnModelName, number> = {
   "tryon-v1.6": 1,
+  "tryon-max": 1,
   "model-create": 2,
   "face-to-model": 2,
 };
@@ -194,6 +197,22 @@ export async function tryOnFullOutfit(
   const withTop = await tryOnGarment(modelImageUrl, topImageUrl, "tops");
   const withTopAndBottom = await tryOnGarment(withTop, bottomImageUrl, "bottoms");
   return withTopAndBottom;
+}
+
+/**
+ * Накладывает на фото не одежду, а аксессуар — обувь, сумку, украшение и
+ * т.п. tryon-v1.6 такие категории не поддерживает (только tops/bottoms/
+ * one-pieces/auto), поэтому используется отдельная модель FASHN — tryon-max
+ * (официально рекомендованная FASHN именно для shoes/bags/jewelry/hats).
+ * Категорию передавать не нужно — tryon-max определяет тип вещи сама.
+ * Дороже и медленнее tryon-v1.6, поэтому применяется только когда выбрана
+ * обувь/сумка, поверх уже готового результата примерки одежды.
+ */
+export async function tryOnAccessory(modelImageUrl: string, productImageUrl: string): Promise<string> {
+  return runToCompletion("tryon-max", {
+    model_image: modelImageUrl,
+    product_image: productImageUrl,
+  });
 }
 
 // Доп. характеристики модели (см. Этап 5 плана редизайна) — необязательны,

@@ -38,6 +38,10 @@ export const tryonHistory = sqliteTable("tryon_history", {
     .references(() => users.id),
   topItemId: text("top_item_id").references(() => catalogItems.id),
   bottomItemId: text("bottom_item_id").references(() => catalogItems.id),
+  // Обувь/сумка накладываются отдельной моделью FASHN (tryon-max, см.
+  // lib/fashn.ts tryOnAccessory) поверх результата примерки одежды выше.
+  shoesItemId: text("shoes_item_id").references(() => catalogItems.id),
+  bagItemId: text("bag_item_id").references(() => catalogItems.id),
   resultImagePath: text("result_image_path"),
   createdAt: text("created_at")
     .notNull()

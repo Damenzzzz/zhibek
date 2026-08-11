@@ -6,11 +6,13 @@ import { useEffect, useState } from "react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
-import { ItemStrip } from "@/components/catalog/ItemStrip";
 
 // Клиентский предохранитель поверх серверного poll-таймаута FASHN (3 минуты,
 // см. lib/fashn.ts) — если сервер вообще не ответит, не виснем бесконечно.
-const CLIENT_TIMEOUT_MS = 4 * 60 * 1000;
+// Обувь/сумка добавляют ещё до 2 доп. последовательных вызовов FASHN
+// (tryon-max, см. lib/fashn.ts tryOnAccessory) поверх примерки одежды,
+// поэтому таймаут поднят с прежних 4 минут.
+const CLIENT_TIMEOUT_MS = 6 * 60 * 1000;
 
 interface Item {
   id: string;
@@ -155,20 +157,38 @@ async function downloadImage(url: string, filename: string) {
   }
 }
 
-export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Item[]; looks: Look[] }) {
+export function TryonForm({
+  tops,
+  bottoms,
+  shoes,
+  bags,
+  looks,
+}: {
+  tops: Item[];
+  bottoms: Item[];
+  shoes: Item[];
+  bags: Item[];
+  looks: Look[];
+}) {
   const profile = useStoredProfile();
   const searchParams = useSearchParams();
   // Примерочная (см. app/fitting-room) может передать сюда предвыбор через
   // ?top=/?bottom= — читаем один раз при монтировании.
   const [topId, setTopId] = useState<string | null>(() => searchParams.get("top"));
   const [bottomId, setBottomId] = useState<string | null>(() => searchParams.get("bottom"));
+  const [shoesId, setShoesId] = useState<string | null>(null);
+  const [bagId, setBagId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TryonResult | null>(null);
   const [matches, setMatches] = useState<Item[]>([]);
   const [history, setHistory] = useState<TryonResult[] | null>(null);
 
-  const anchorId = topId ?? bottomId;
+  // Якорь для рекомендаций "Дополните образ" — первая выбранная вещь любой
+  // категории. Пока ничего не выбрано (свежий заход без предвыбора), anchor
+  // остаётся null — и блок ниже явно показывает подсказку вместо того, чтобы
+  // тихо пропасть (это и была причина жалобы "не работает" — см. план).
+  const anchorId = topId ?? bottomId ?? shoesId ?? bagId;
 
   useEffect(() => {
     let cancelled = false;
@@ -208,7 +228,9 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
     };
   }, [profile]);
 
-  const visibleMatches = matches.filter((item) => item.id !== topId && item.id !== bottomId);
+  const selectedIds = new Set([topId, bottomId, shoesId, bagId].filter(Boolean));
+  const visibleMatches = matches.filter((item) => !selectedIds.has(item.id));
+  const selectedCount = selectedIds.size;
 
   function pickLook(look: Look) {
     setTopId(look.topItem.id);
@@ -226,8 +248,18 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
     setResult(null);
   }
 
+  function toggleShoes(id: string) {
+    setShoesId((current) => (current === id ? null : id));
+    setResult(null);
+  }
+
+  function toggleBag(id: string) {
+    setBagId((current) => (current === id ? null : id));
+    setResult(null);
+  }
+
   async function handleTryOn() {
-    if (!profile || (!topId && !bottomId)) return;
+    if (!profile || (!topId && !bottomId && !shoesId && !bagId)) return;
     setStatus("loading");
     setError(null);
     setResult(null);
@@ -239,7 +271,13 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
       const response = await fetch("/api/tryon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: profile.id, topItemId: topId, bottomItemId: bottomId }),
+        body: JSON.stringify({
+          userId: profile.id,
+          topItemId: topId,
+          bottomItemId: bottomId,
+          shoesItemId: shoesId,
+          bagItemId: bagId,
+        }),
         signal: controller.signal,
       });
       const data = await response.json();
@@ -321,17 +359,73 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
         </div>
       </section>
 
-      <ItemStrip title="Дополните образ" items={visibleMatches} />
+      {shoes.length > 0 && (
+        <section>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Обувь</p>
+          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+            {shoes.map((item) => (
+              <ItemThumb
+                key={item.id}
+                item={item}
+                selected={shoesId === item.id}
+                onClick={() => toggleShoes(item.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {bags.length > 0 && (
+        <section>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Сумки</p>
+          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+            {bags.map((item) => (
+              <ItemThumb key={item.id} item={item} selected={bagId === item.id} onClick={() => toggleBag(item.id)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Дополните образ</p>
+        {!anchorId ? (
+          <p className="mt-3 text-sm text-ink-soft">Выбери вещь выше, чтобы увидеть, что к ней подходит.</p>
+        ) : visibleMatches.length === 0 ? (
+          <p className="mt-3 text-sm text-ink-soft">Пока нечего предложить к этому выбору.</p>
+        ) : (
+          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+            {visibleMatches.map((item) => (
+              <Link key={item.id} href={`/catalog/${item.id}`} className="group w-24 shrink-0 sm:w-28">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={catalogImageUrl(item.imagePath)}
+                    alt={item.description ?? item.category}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                  />
+                </div>
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+                  {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       {error && <p className="rounded-xl border border-accent/40 bg-accent-soft px-3.5 py-2.5 text-sm text-ink">{error}</p>}
 
       <button
         type="button"
         onClick={handleTryOn}
-        disabled={(!topId && !bottomId) || status === "loading"}
+        disabled={selectedCount === 0 || status === "loading"}
         className="w-full rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
-        {status === "loading" ? "Примеряем… обычно 5–20 секунд" : "Примерить"}
+        {status === "loading"
+          ? selectedCount > 1
+            ? "Примеряем… может занять до пары минут"
+            : "Примеряем… обычно 5–20 секунд"
+          : "Примерить"}
       </button>
 
       {status === "loading" && (

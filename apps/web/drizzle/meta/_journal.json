@@ -22,6 +22,13 @@
       "when": 1786454374546,
       "tag": "0002_ancient_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786466019844,
+      "tag": "0003_white_living_lightning",
+      "breakpoints": true
     }
   ]
 }
