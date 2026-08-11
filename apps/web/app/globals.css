@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
+/* Светлый высококонтрастный минимал (см. план редизайна). "bone/gold" —
+   старые молочные имена оставлены как алиасы ниже, чтобы весь существующий
+   код (bg-bone, border-line, text-accent...) не пришлось переписывать —
+   меняются только сами значения. */
 :root {
-  --bone: #f7f2e7;
-  --bone-soft: #eee5d2;
-  --ink: #1e2320;
-  --ink-soft: #666f65;
-  --accent: #24513f;
-  --accent-soft: #dbe6dd;
-  --gold: #a9863f;
-  --line: #ddd3ba;
+  --paper: #ffffff;
+  --paper-soft: #f4f4f2;
+  --ink: #0a0a0a;
+  --ink-soft: #6b6b6b;
+  --line: #e6e6e3;
+  --accent: #1f2fff;
+  --accent-soft: #e8e9ff;
+  --accent-contrast: #ffffff;
 }
 
 @theme inline {
-  --color-bone: var(--bone);
-  --color-bone-soft: var(--bone-soft);
+  --color-bone: var(--paper);
+  --color-bone-soft: var(--paper-soft);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
-  --color-gold: var(--gold);
+  --color-gold: var(--accent);
   --color-line: var(--line);
-  --font-display: var(--font-cormorant);
+  --font-display: var(--font-display-src);
   --font-sans: var(--font-onest);
 }
 
@@ -31,18 +35,14 @@
 }
 
 body {
-  background-color: var(--bone);
+  background-color: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
-  background-image:
-    radial-gradient(circle at 1.5px 1.5px, color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 0),
-    linear-gradient(180deg, color-mix(in srgb, var(--gold) 6%, transparent), transparent 320px);
-  background-size: 22px 22px, 100% 100%;
 }
 
 ::selection {
   background-color: var(--accent);
-  color: var(--bone);
+  color: var(--accent-contrast);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -51,4 +51,26 @@ body {
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Надрубрика над заголовками секций — единая замена бывшей "золотой черты". */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.eyebrow::before {
+  content: "";
+  width: 1.5rem;
+  height: 2px;
+  background: var(--accent);
 }

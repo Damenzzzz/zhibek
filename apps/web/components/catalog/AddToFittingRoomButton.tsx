@@ -11,13 +11,13 @@ export function AddToFittingRoomButton({ itemId }: { itemId: string }) {
       type="button"
       onClick={() => toggleFittingRoomItem(itemId, !added)}
       className={
-        "w-full border px-6 py-3 text-sm font-medium uppercase tracking-[0.1em] transition-colors sm:w-auto " +
+        "flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition-colors sm:w-auto " +
         (added
-          ? "border-ink/25 bg-transparent text-ink hover:border-ink/50"
-          : "border-accent bg-accent text-bone hover:bg-accent/90")
+          ? "border border-ink/20 bg-transparent text-ink hover:border-ink/40"
+          : "bg-ink text-white hover:opacity-90")
       }
     >
-      {added ? "Добавлено в примерку ✓" : "Добавить к примерке"}
+      {added ? "Добавлено в примерочную ✓" : "Добавить в примерочную"}
     </button>
   );
 }

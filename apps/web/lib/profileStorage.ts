@@ -13,6 +13,10 @@ export interface StoredProfile {
   bodyType: string;
   gender: string;
   photoPath: string | null;
+  ageRange: string | null;
+  skinTone: string | null;
+  clothingSize: string | null;
+  pose: string | null;
 }
 
 export function readStoredProfile(): StoredProfile | null {

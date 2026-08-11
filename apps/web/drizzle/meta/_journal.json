@@ -15,6 +15,13 @@
       "when": 1786364145030,
       "tag": "0001_nasty_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786454374546,
+      "tag": "0002_ancient_master_chief",
+      "breakpoints": true
     }
   ]
 }

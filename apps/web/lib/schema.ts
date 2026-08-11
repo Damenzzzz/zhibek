@@ -21,6 +21,12 @@ export const users = sqliteTable("users", {
   bodyType: text("body_type").notNull(),
   gender: text("gender").notNull(),
   photoPath: text("photo_path"),
+  // Доп. характеристики (см. lib/fashn.ts generateModelFromDescription) —
+  // nullable, чтобы не ломать уже сохранённые анкеты без этих полей.
+  ageRange: text("age_range"),
+  skinTone: text("skin_tone"),
+  clothingSize: text("clothing_size"),
+  pose: text("pose"),
 });
 
 export const tryonHistory = sqliteTable("tryon_history", {

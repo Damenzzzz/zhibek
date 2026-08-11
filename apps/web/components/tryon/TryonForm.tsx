@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
-import { useStoredProfile } from "@/lib/profileStorage";
+import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
 import { ItemStrip } from "@/components/catalog/ItemStrip";
 
 // Клиентский предохранитель поверх серверного poll-таймаута FASHN (3 минуты,
@@ -47,11 +47,11 @@ function ItemThumb({
       type="button"
       onClick={onClick}
       className={
-        "w-24 shrink-0 border text-left transition-colors sm:w-28 " +
-        (selected ? "border-accent" : "border-line hover:border-ink/40")
+        "w-24 shrink-0 rounded-2xl border-2 p-1 text-left transition-colors sm:w-28 " +
+        (selected ? "border-accent" : "border-transparent hover:border-line")
       }
     >
-      <div className="relative aspect-[3/4] overflow-hidden bg-bone-soft">
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-paper-soft">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={catalogImageUrl(item.imagePath)}
@@ -63,6 +63,50 @@ function ItemThumb({
         {item.description ?? CATEGORY_LABELS[item.category as CatalogCategory]}
       </p>
     </button>
+  );
+}
+
+const AGE_RANGE_LABELS: Record<string, string> = {
+  "18-25": "18–25 лет",
+  "26-35": "26–35 лет",
+  "36-45": "36–45 лет",
+  "45+": "45+ лет",
+};
+
+const SKIN_TONE_LABELS: Record<string, string> = {
+  fair: "Светлый тон",
+  light: "Светло-смуглый",
+  medium: "Смуглый",
+  deep: "Тёмный тон",
+};
+
+const POSE_LABELS: Record<string, string> = {
+  front: "Фас",
+  "three-quarter": "Три четверти",
+  motion: "В движении",
+};
+
+function ProfileSummary({ profile }: { profile: StoredProfile }) {
+  const badges = [
+    `${profile.heightCm} см`,
+    `${profile.weightKg} кг`,
+    profile.ageRange ? AGE_RANGE_LABELS[profile.ageRange] ?? profile.ageRange : null,
+    profile.skinTone ? SKIN_TONE_LABELS[profile.skinTone] ?? profile.skinTone : null,
+    profile.clothingSize ? `Размер ${profile.clothingSize}` : null,
+    profile.pose ? POSE_LABELS[profile.pose] ?? profile.pose : null,
+  ].filter((b): b is string => Boolean(b));
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {badges.map((badge) => (
+        <span key={badge} className="rounded-full border border-line bg-paper-soft px-3 py-1 text-xs text-ink-soft">
+          {badge}
+        </span>
+      ))}
+      <Link href="/profile" className="text-xs font-medium text-accent transition-colors hover:text-ink">
+        Изменить анкету
+      </Link>
+    </div>
   );
 }
 
@@ -222,11 +266,11 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
 
   if (!profile) {
     return (
-      <div className="mt-10 border border-line bg-bone-soft px-5 py-8 text-center">
+      <div className="mt-10 rounded-2xl border border-line bg-paper-soft px-5 py-8 text-center">
         <p className="text-sm text-ink-soft">Сначала заполни анкету — нужно фото для примерки.</p>
         <Link
           href="/profile"
-          className="mt-4 inline-block border border-accent bg-accent px-5 py-2.5 text-sm font-medium uppercase tracking-[0.1em] text-bone transition-colors hover:bg-accent/90"
+          className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
         >
           Заполнить анкету
         </Link>
@@ -236,9 +280,11 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
 
   return (
     <div className="mt-8 flex flex-col gap-8">
+      <ProfileSummary profile={profile} />
+
       {looks.length > 0 && (
         <section>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent">Готовые образы</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Готовые образы</p>
           <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
             {looks.map((look) => (
               <ItemThumb
@@ -253,7 +299,7 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
       )}
 
       <section>
-        <p className="text-[11px] uppercase tracking-[0.25em] text-accent">Верх</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Верх</p>
         <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
           {tops.map((item) => (
             <ItemThumb key={item.id} item={item} selected={topId === item.id} onClick={() => toggleTop(item.id)} />
@@ -262,7 +308,7 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
       </section>
 
       <section>
-        <p className="text-[11px] uppercase tracking-[0.25em] text-accent">Низ</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Низ</p>
         <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
           {bottoms.map((item) => (
             <ItemThumb
@@ -277,39 +323,39 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
 
       <ItemStrip title="Дополните образ" items={visibleMatches} />
 
-      {error && <p className="border border-accent/40 bg-accent-soft px-3 py-2.5 text-sm text-ink">{error}</p>}
+      {error && <p className="rounded-xl border border-accent/40 bg-accent-soft px-3.5 py-2.5 text-sm text-ink">{error}</p>}
 
       <button
         type="button"
         onClick={handleTryOn}
         disabled={(!topId && !bottomId) || status === "loading"}
-        className="w-full border border-accent bg-accent px-6 py-3 text-sm font-medium uppercase tracking-[0.1em] text-bone transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        className="w-full rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
         {status === "loading" ? "Примеряем… обычно 5–20 секунд" : "Примерить"}
       </button>
 
       {status === "loading" && (
         <section className="border-t border-line pt-8">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent">Результат</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Результат</p>
           <div className="mt-3 grid grid-cols-2 gap-4">
-            <div className="aspect-[3/4] animate-pulse border border-line bg-bone-soft" />
-            <div className="aspect-[3/4] animate-pulse border border-line bg-bone-soft" />
+            <div className="aspect-[3/4] animate-pulse rounded-2xl border border-line bg-paper-soft" />
+            <div className="aspect-[3/4] animate-pulse rounded-2xl border border-line bg-paper-soft" />
           </div>
         </section>
       )}
 
       {result && status === "idle" && (
         <section className="border-t border-line pt-8">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent">Результат</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Результат</p>
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>
-              <div className="relative aspect-[3/4] overflow-hidden border border-line bg-bone-soft">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
                 <ResultImage src={profile.photoPath ?? ""} alt="До примерки" />
               </div>
               <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.12em] text-ink-soft">До</p>
             </div>
             <div>
-              <div className="relative aspect-[3/4] overflow-hidden border border-line bg-bone-soft">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
                 <ResultImage src={result.resultImagePath} alt="После примерки" />
               </div>
               <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.12em] text-ink-soft">После</p>
@@ -318,7 +364,7 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
           <button
             type="button"
             onClick={() => downloadImage(result.resultImagePath, "zhibek-tryon.jpg")}
-            className="mt-4 w-full border border-ink/25 px-6 py-3 text-sm font-medium uppercase tracking-[0.1em] text-ink transition-colors hover:border-ink/50 sm:w-auto"
+            className="mt-4 w-full rounded-full border border-ink/20 px-6 py-3 text-sm font-medium text-ink transition-colors hover:border-ink/40 sm:w-auto"
           >
             Скачать
           </button>
@@ -326,12 +372,12 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
       )}
 
       <section className="border-t border-line pt-8">
-        <p className="text-[11px] uppercase tracking-[0.25em] text-accent">История примерок</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">История примерок</p>
 
         {history === null ? (
           <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="aspect-[3/4] w-24 shrink-0 animate-pulse border border-line bg-bone-soft sm:w-28" />
+              <div key={i} className="aspect-[3/4] w-24 shrink-0 animate-pulse rounded-2xl border border-line bg-paper-soft sm:w-28" />
             ))}
           </div>
         ) : history.length === 0 ? (
@@ -345,10 +391,10 @@ export function TryonForm({ tops, bottoms, looks }: { tops: Item[]; bottoms: Ite
                 key={entry.id}
                 type="button"
                 onClick={() => downloadImage(entry.resultImagePath, "zhibek-tryon.jpg")}
-                className="w-24 shrink-0 border border-line text-left transition-colors hover:border-ink/40 sm:w-28"
+                className="w-24 shrink-0 rounded-2xl border border-line text-left transition-colors hover:border-ink/30 sm:w-28"
                 title="Скачать"
               >
-                <div className="relative aspect-[3/4] overflow-hidden bg-bone-soft">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-t-2xl bg-paper-soft">
                   <ResultImage src={entry.resultImagePath} alt={`Примерка от ${formatDate(entry.createdAt)}`} />
                 </div>
                 <p className="mt-1.5 px-1 pb-1 text-[10px] text-ink-soft">{formatDate(entry.createdAt)}</p>

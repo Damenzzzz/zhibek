@@ -50,3 +50,6 @@ next-env.d.ts
 # uploaded user photos
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+.vercel
+.env*

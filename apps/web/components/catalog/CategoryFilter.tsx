@@ -14,9 +14,9 @@ export function CategoryFilter({ active }: { active?: string }) {
             key={chip.label}
             href={href}
             className={
-              "shrink-0 whitespace-nowrap border px-3.5 py-1.5 text-sm transition-colors " +
+              "shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm transition-colors " +
               (isActive
-                ? "border-accent bg-accent text-bone"
+                ? "border-ink bg-ink text-white"
                 : "border-line text-ink-soft hover:border-ink/40 hover:text-ink")
             }
           >

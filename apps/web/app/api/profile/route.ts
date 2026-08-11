@@ -5,11 +5,25 @@ import { users } from "@/lib/schema";
 import { generateModelFromDescription, FashnApiError } from "@/lib/fashn";
 import { saveUpload } from "@/lib/storage";
 
+// age_range/skin_tone/clothing_size/pose — необязательные (см. lib/schema.ts:
+// users.ageRange и т.д. nullable). formData.get() отдаёт null для
+// отсутствующего поля (а не undefined), поэтому явно принимаем оба варианта;
+// пустая строка тоже приводится к undefined, чтобы не писать "" в БД.
+const optionalTrimmed = z.union([z.string(), z.null()]).optional().transform((v) => {
+  if (typeof v !== "string") return undefined;
+  const trimmed = v.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+});
+
 const profileFieldsSchema = z.object({
   height_cm: z.coerce.number().int().min(50).max(250),
   weight_kg: z.coerce.number().min(20).max(300),
   body_type: z.string().trim().min(1),
   gender: z.string().trim().min(1),
+  age_range: optionalTrimmed,
+  skin_tone: optionalTrimmed,
+  clothing_size: optionalTrimmed,
+  pose: optionalTrimmed,
 });
 
 const PHOTO_MIME_TO_EXT: Record<string, string> = {
@@ -45,6 +59,10 @@ export async function POST(request: Request) {
     weight_kg: formData.get("weight_kg"),
     body_type: formData.get("body_type"),
     gender: formData.get("gender"),
+    age_range: formData.get("age_range"),
+    skin_tone: formData.get("skin_tone"),
+    clothing_size: formData.get("clothing_size"),
+    pose: formData.get("pose"),
   });
 
   if (!fieldsResult.success) {
@@ -58,7 +76,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { height_cm, weight_kg, body_type, gender } = fieldsResult.data;
+  const { height_cm, weight_kg, body_type, gender, age_range, skin_tone, clothing_size, pose } = fieldsResult.data;
 
   // Фото необязательно (см. Этап 5 плана: у пользователя может не быть фото,
   // тогда модель генерируется отдельно через FASHN). Отсутствие файла — это
@@ -91,7 +109,11 @@ export async function POST(request: Request) {
     // FASHN (платный вызов) и пересохраняем результат локально, чтобы photoPath
     // всегда указывал на наш /uploads, независимо от источника фото.
     try {
-      const generatedUrl = await generateModelFromDescription(height_cm, weight_kg, body_type, gender);
+      const generatedUrl = await generateModelFromDescription(height_cm, weight_kg, body_type, gender, {
+        ageRange: age_range,
+        skinTone: skin_tone,
+        pose,
+      });
       photoPath = await downloadGeneratedModel(generatedUrl);
     } catch (err) {
       if (err instanceof FashnApiError) {
@@ -109,6 +131,10 @@ export async function POST(request: Request) {
       bodyType: body_type,
       gender,
       photoPath,
+      ageRange: age_range ?? null,
+      skinTone: skin_tone ?? null,
+      clothingSize: clothing_size ?? null,
+      pose: pose ?? null,
     })
     .returning();
 

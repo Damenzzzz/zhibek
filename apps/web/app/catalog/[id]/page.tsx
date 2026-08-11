@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl, colorSwatch } from "@/lib/catalogDisplay";
-import { SiteHeader } from "@/components/SiteHeader";
 import { SkeletonImage } from "@/components/SkeletonImage";
 import { AddToFittingRoomButton } from "@/components/catalog/AddToFittingRoomButton";
 import { ItemStrip } from "@/components/catalog/ItemStrip";
@@ -39,14 +38,13 @@ export default async function ProductPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-        <Link href="/catalog" className="text-sm text-ink-soft transition-colors hover:text-accent">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-6 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:px-8">
+        <Link href="/catalog" className="text-sm text-ink-soft transition-colors hover:text-ink">
           ← Каталог
         </Link>
 
         <div className="mt-4 grid gap-8 md:grid-cols-2 md:gap-12">
-          <div className="relative aspect-[3/4] w-full overflow-hidden border border-line bg-bone-soft">
+          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-line bg-paper-soft">
             <SkeletonImage
               src={catalogImageUrl(item.imagePath)}
               alt={item.description ?? label}
@@ -56,9 +54,8 @@ export default async function ProductPage({
           </div>
 
           <div className="flex flex-col">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-accent">{label}</p>
-            <div className="mt-2 h-[2px] w-12 bg-gradient-to-r from-gold to-transparent" />
-            <h1 className="mt-3 font-display text-3xl italic leading-tight text-ink sm:text-4xl">
+            <span className="eyebrow">{label}</span>
+            <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
               {item.description ?? label}
             </h1>
 

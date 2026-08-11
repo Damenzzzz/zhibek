@@ -1,12 +1,15 @@
 // item.imagePath хранится как относительный путь от корня репозитория,
-// например "data/catalog/top/143595156.jpg" — сама папка data/ лежит вне
-// apps/web, поэтому файл отдаётся через app/api/catalog/images/[...path].
+// например "data/catalog/top/143595156.jpg". На Vercel корень деплоя —
+// apps/web, а не весь монорепозиторий, поэтому исходная data/catalog вне
+// него недоступна во время выполнения — lib/syncCatalog.ts копирует файлы
+// в apps/web/public/catalog при синхронизации, и отдаём их оттуда как
+// обычную статику.
 export function catalogImageUrl(imagePath: string): string {
   const marker = "data/catalog/";
   const idx = imagePath.indexOf(marker);
   const relative = idx >= 0 ? imagePath.slice(idx + marker.length) : imagePath;
   const segments = relative.split(/[\\/]/).filter(Boolean).map(encodeURIComponent);
-  return `/api/catalog/images/${segments.join("/")}`;
+  return `/catalog/${segments.join("/")}`;
 }
 
 // Цвета в БД — свободный текст на русском от Gemini (см. process_photos.py),

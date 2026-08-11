@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { Cormorant, Onest } from "next/font/google";
+import { Unbounded, Onest } from "next/font/google";
 import "./globals.css";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 
-const cormorant = Cormorant({
-  variable: "--font-cormorant",
+// Жирный геометричный гротеск с поддержкой кириллицы для заголовков —
+// замена прежнего серифного Cormorant в рамках редизайна (см. план:
+// "устаревший" молочный стиль → современный высококонтрастный минимал).
+const displayFont = Unbounded({
+  variable: "--font-display-src",
   subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+  weight: ["500", "600", "700", "800"],
 });
 
 const onest = Onest({
@@ -22,8 +26,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ru" className={`${cormorant.variable} ${onest.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ru" className={`${displayFont.variable} ${onest.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col">
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">{children}</div>
+        <SiteFooter />
+      </body>
     </html>
   );
 }

@@ -1,17 +1,24 @@
 """
-Обрабатывает коллажи из data/raw/ через Gemini API: находит на каждом фото
-отдельные предметы одежды/аксессуары, вырезает их и пишет в каталог.
+Обрабатывает исходники из data/raw/ через Gemini API и пишет предметы одежды
+в каталог. Поддерживает два формата входа:
 
-Формат входного фото (коллаж): слева — модель в полном образе, справа —
-отдельные вырезанные фото товаров с номерами артикулов рядом.
+1. Коллаж (файл прямо в data/raw/): слева — модель в полном образе, справа —
+   отдельные вырезанные фото товаров с номерами артикулов рядом. Каждый
+   найденный предмет вырезается по рамке (bounding box) в свой файл.
+2. Папка с ракурсами одного товара (data/raw/<имя>/*): уже изолированное
+   фото товара (без модели, без наложенного текста) в нескольких ракурсах —
+   например data/raw/1/*.jpg с футболкой спереди и сзади. Обрезка не нужна,
+   в каталог идёт весь файл целиком; в качестве обложки берётся самый
+   "тяжёлый" по размеру файл в папке (эмпирически — самый выигрышный ракурс
+   среди фото маркетплейсов).
 
 Запуск:
     python scripts/process_photos.py
     python scripts/process_photos.py --model gemini-2.5-flash --limit 3
-    python scripts/process_photos.py --force   # переобработать все фото заново
+    python scripts/process_photos.py --force   # переобработать всё заново
 
-Идемпотентно: уже обработанные фото (по имени файла, таблица processed_photos)
-повторно не отправляются в Gemini, если не передан --force.
+Идемпотентно: уже обработанные источники (по имени файла или папки, таблица
+processed_photos) повторно не отправляются в Gemini, если не передан --force.
 """
 
 import argparse
@@ -55,15 +62,20 @@ RETOUCH_PROMPT = """\
 Category = Literal["top", "bottom", "outerwear", "shoes", "bag", "accessory"]
 
 PROMPT = """\
-Это коллаж: слева — фото модели, одетой в полный образ, справа — отдельные
-вырезанные фотографии товаров из этого образа, рядом с некоторыми из них
-подписан номер артикула (SKU).
+Это фото одного образа — набор одежды/аксессуаров, которые продаются вместе.
+Обычно это коллаж: слева — фото модели, одетой в полный образ, справа —
+отдельные вырезанные фотографии товаров из этого образа, рядом с некоторыми
+из них подписан номер артикула (SKU). Но встречается и другой вид: например
+фото без модели, где просто разложены/развешаны несколько отдельных вещей
+образа (куртка на плечиках, брюки рядом и т.п.) — правила ниже применяются
+к любому из этих вариантов.
 
 Найди на изображении все отдельные предметы одежды и аксессуары. Для каждого
 верни отдельную рамку (bounding box), даже если несколько предметов похожи.
-Приоритет — товары в отдельных вырезанных фото справа (они уже разделены и
-их проще ограничить рамкой), но если справа не хватает крупных предметов,
-которые хорошо видны и на модели, добавь и их.
+Если на фото есть и модель, и отдельные вырезанные фото товаров — приоритет
+у вырезанных фото (они уже разделены и их проще ограничить рамкой), но если
+их не хватает для крупных предметов, которые хорошо видны и на модели,
+добавь и их.
 
 ВАЖНО про рамку: у некоторых товаров справа под фото или поверх него есть
 текстовая подпись (название, "Арт.<номер>", цена вроде "3915 руб."). Рамка
@@ -89,6 +101,22 @@ class DetectedItem(BaseModel):
     category: Category
     dominant_color: str
     sku_id: Optional[str] = None
+    short_description: str
+
+
+SINGLES_PROMPT = """\
+Это изолированное фото одного товара одежды/обуви/аксессуара (без модели,
+без наложенного текста) — например с маркетплейса. Определи:
+- category: одна из top, bottom, outerwear, shoes, bag, accessory
+- dominant_color: доминирующий цвет на русском (например "серый")
+- short_description: короткое описание товара на русском (1 предложение,
+  с брендом и типом изделия, если они узнаваемы на фото)
+"""
+
+
+class SingleItem(BaseModel):
+    category: Category
+    dominant_color: str
     short_description: str
 
 
@@ -185,6 +213,33 @@ def detect_items(client: genai.Client, model: str, image_path: Path) -> list[Det
     return [DetectedItem.model_validate(item) for item in raw]
 
 
+def detect_single_item(client: genai.Client, model: str, image_path: Path) -> SingleItem:
+    image_bytes = image_path.read_bytes()
+    mime_type = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }[image_path.suffix.lower()]
+
+    response = client.models.generate_content(
+        model=model,
+        contents=[
+            SINGLES_PROMPT,
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+        ],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=SingleItem,
+        ),
+    )
+
+    if response.parsed is not None:
+        return response.parsed
+
+    return SingleItem.model_validate(json.loads(response.text))
+
+
 def remove_watermark(client: genai.Client, model: str, crop: Image.Image) -> Optional[Image.Image]:
     """Пытается убрать вписанный в фото текст (цена/артикул) через image-editing
     модель Gemini. Возвращает None при любой проблеме — вызывающий код в этом
@@ -278,6 +333,62 @@ def process_photo(
     return category_counts
 
 
+# processed_photos.source_photo хранит либо имя файла-коллажа ("look.jpg"),
+# либо, для папок с ракурсами одного товара, имя папки с завершающим "/"
+# (например "1/") — суффикс отличает их от настоящих имён файлов и не может
+# случайно совпасть с реальным JPEG/PNG.
+def folder_source_key(folder_path: Path) -> str:
+    return f"{folder_path.name}/"
+
+
+def process_single_folder(
+    conn: sqlite3.Connection,
+    client: genai.Client,
+    model: str,
+    folder_path: Path,
+) -> dict[str, int]:
+    images = sorted(p for p in folder_path.iterdir() if p.suffix.lower() in IMAGE_EXTENSIONS)
+    if not images:
+        print(f"  ! в папке {folder_path.name} нет изображений — пропущена")
+        return {}
+
+    # Эвристика выбора обложки: самый "тяжёлый" по размеру файл среди
+    # ракурсов обычно самый детальный/выигрышный кадр (проверено на реальных
+    # фото с маркетплейсов в data/raw/1, data/raw/2, data/raw/3).
+    cover = max(images, key=lambda p: p.stat().st_size)
+
+    detected = detect_single_item(client, model, cover)
+
+    image = Image.open(cover).convert("RGB")
+    look_id = f"single-{folder_path.name}"
+    item_id = sanitize_id(look_id)
+    category_dir = CATALOG_DIR / detected.category
+    category_dir.mkdir(parents=True, exist_ok=True)
+    image_path = category_dir / f"{item_id}.jpg"
+    image.save(image_path, "JPEG", quality=90)
+
+    relative_path = image_path.relative_to(ROOT).as_posix()
+    source_photo = folder_source_key(folder_path)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO items
+            (id, sku, category, color, description, image_path, look_id, source_photo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (item_id, None, detected.category, detected.dominant_color, detected.short_description, relative_path, look_id, source_photo),
+    )
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO processed_photos (source_photo, processed_at, items_found)
+        VALUES (?, ?, ?)
+        """,
+        (source_photo, datetime.now(timezone.utc).isoformat(), 1),
+    )
+    conn.commit()
+    return {detected.category: 1}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default=DEFAULT_MODEL, help="Gemini модель (по умолчанию %(default)s)")
@@ -345,6 +456,38 @@ def main() -> None:
             print(f"  ! ошибка при обработке {photo_path.name}: {exc}", file=sys.stderr)
             continue
         summary.append((photo_path.name, counts))
+
+    # Папки с ракурсами одного товара (data/raw/1, data/raw/2, ...) — второй
+    # формат входа, см. докстринг модуля. Обрабатываются отдельно от
+    # коллажей: iterdir() выше их не задевает (у директорий нет suffix).
+    folders = sorted(p for p in RAW_DIR.iterdir() if p.is_dir())
+    if args.force:
+        new_folders = folders
+        folders_skipped = 0
+    else:
+        new_folders = [f for f in folders if not already_processed(conn, folder_source_key(f))]
+        folders_skipped = len(folders) - len(new_folders)
+    if args.limit is not None:
+        remaining = max(0, args.limit - len(new_photos))
+        new_folders = new_folders[:remaining]
+
+    if folders:
+        print(
+            f"\nНайдено папок-товаров: {len(folders)}, уже обработано (пропущено): "
+            f"{folders_skipped}, к обработке: {len(new_folders)}"
+        )
+
+    for folder_path in new_folders:
+        print(f"\nОбрабатываю папку {folder_path.name}/...")
+        if args.force:
+            clear_previous_results(conn, folder_source_key(folder_path))
+        try:
+            counts = process_single_folder(conn, client, args.model, folder_path)
+        except Exception as exc:  # noqa: BLE001 - продолжаем со следующей папкой
+            print(f"  ! ошибка при обработке папки {folder_path.name}: {exc}", file=sys.stderr)
+            continue
+        if counts:
+            summary.append((f"{folder_path.name}/", counts))
 
     conn.close()
 

@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
 import { CATEGORY_LABELS, isCatalogCategory, type CatalogCategory } from "@/lib/categories";
-import { SiteHeader } from "@/components/SiteHeader";
 import { CategoryFilter } from "@/components/catalog/CategoryFilter";
 import { ProductCard } from "@/components/catalog/ProductCard";
 
@@ -20,12 +19,10 @@ export default async function CatalogPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-8 pt-24 sm:px-6 sm:pb-12 sm:pt-28 lg:px-8">
         <div className="mb-8 max-w-xl">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-accent">Каталог</p>
-          <div className="mt-2 h-[2px] w-12 bg-gradient-to-r from-gold to-transparent" />
-          <h1 className="mt-3 font-display text-4xl italic tracking-tight text-ink sm:text-5xl">
+          <span className="eyebrow">Каталог</span>
+          <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
             Образы недели
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">
@@ -39,7 +36,7 @@ export default async function CatalogPage({
         </div>
 
         {items.length === 0 ? (
-          <div className="border border-line bg-bone-soft px-5 py-16 text-center">
+          <div className="rounded-2xl border border-line bg-paper-soft px-5 py-16 text-center">
             {activeCategory ? (
               <p className="text-sm text-ink-soft">
                 В категории «{CATEGORY_LABELS[activeCategory as CatalogCategory]}» пока пусто — загляни

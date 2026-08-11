@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { SiteHeader } from "@/components/SiteHeader";
 import { SkeletonImage } from "@/components/SkeletonImage";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
@@ -54,23 +53,21 @@ export default function FittingRoomPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-accent">Примерочная</p>
-        <div className="mt-2 h-[2px] w-12 bg-gradient-to-r from-gold to-transparent" />
-        <h1 className="mt-3 font-display text-4xl italic tracking-tight text-ink">Твой список</h1>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-8 pt-24 sm:px-6 sm:pb-12 sm:pt-28">
+        <span className="eyebrow">Примерочная</span>
+        <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-ink">Твой список</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-          Товары, отложенные кнопкой «Добавить к примерке» на страницах каталога.
+          Товары, отложенные кнопкой «Добавить в примерочную» на страницах каталога.
         </p>
 
         {ids.length === 0 ? (
-          <div className="mt-10 border border-line bg-bone-soft px-5 py-16 text-center">
+          <div className="mt-10 rounded-2xl border border-line bg-paper-soft px-5 py-16 text-center">
             <p className="text-sm text-ink-soft">
-              Примерочная пуста — добавляй товары кнопкой «Добавить к примерке» в каталоге.
+              Примерочная пуста — добавляй товары кнопкой «Добавить в примерочную» в каталоге.
             </p>
             <Link
               href="/catalog"
-              className="mt-4 inline-block border border-accent bg-accent px-5 py-2.5 text-sm font-medium uppercase tracking-[0.1em] text-bone transition-colors hover:bg-accent/90"
+              className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
             >
               В каталог
             </Link>
@@ -84,12 +81,12 @@ export default function FittingRoomPage() {
                     type="button"
                     onClick={() => removeFittingRoomItem(item.id)}
                     aria-label="Убрать из примерочной"
-                    className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center border border-line bg-bone/90 text-xs text-ink-soft transition-colors hover:border-accent hover:text-accent"
+                    className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-white/90 text-xs text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
                   >
                     ×
                   </button>
                   <Link href={`/catalog/${item.id}`}>
-                    <div className="relative aspect-[3/4] overflow-hidden border border-line bg-bone-soft">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
                       <SkeletonImage
                         src={catalogImageUrl(item.imagePath)}
                         alt={item.description ?? item.category}
@@ -107,7 +104,7 @@ export default function FittingRoomPage() {
             <button
               type="button"
               onClick={goToTryon}
-              className="mt-8 w-full border border-accent bg-accent px-6 py-3 text-sm font-medium uppercase tracking-[0.1em] text-bone transition-colors hover:bg-accent/90 sm:w-auto"
+              className="mt-8 w-full rounded-full bg-ink px-6 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 sm:w-auto"
             >
               Перейти к примерке
             </button>

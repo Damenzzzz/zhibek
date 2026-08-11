@@ -196,16 +196,37 @@ export async function tryOnFullOutfit(
   return withTopAndBottom;
 }
 
+// Доп. характеристики модели (см. Этап 5 плана редизайна) — необязательны,
+// каждая просто дописывается в промпт при наличии значения.
+export interface ModelDescriptionExtras {
+  ageRange?: string | null;
+  skinTone?: string | null;
+  pose?: string | null;
+}
+
+const POSE_PROMPT_HINTS: Record<string, string> = {
+  front: "Standing pose, front-facing",
+  "three-quarter": "Standing in a three-quarter turn pose",
+  motion: "Natural walking pose, mid-stride",
+};
+
 /** Генерирует модель по текстовому описанию (для пользователей без фото). */
 export async function generateModelFromDescription(
   heightCm: number,
   weightKg: number,
   bodyType: string,
-  gender: string
+  gender: string,
+  extras: ModelDescriptionExtras = {}
 ): Promise<string> {
+  const { ageRange, skinTone, pose } = extras;
+
+  const agePart = ageRange ? `, ${ageRange} years old` : "";
+  const skinPart = skinTone ? `, ${skinTone} skin tone` : "";
+  const posePart = (pose && POSE_PROMPT_HINTS[pose]) || POSE_PROMPT_HINTS.front;
+
   const prompt =
-    `Full body fashion photo of a ${gender} model, approximately ${heightCm} cm tall ` +
-    `and ${weightKg} kg, ${bodyType} body type. Standing pose, front-facing, neutral ` +
+    `Full body fashion photo of a ${gender} model${agePart}, approximately ${heightCm} cm tall ` +
+    `and ${weightKg} kg, ${bodyType} body type${skinPart}. ${posePart}, neutral ` +
     `light gray studio background, soft even lighting, suitable for virtual clothing try-on.`;
 
   return runToCompletion("model-create", {

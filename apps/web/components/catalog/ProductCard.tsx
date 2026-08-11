@@ -17,14 +17,14 @@ export function ProductCard({ id, category, color, description, imagePath }: Pro
 
   return (
     <Link href={`/catalog/${id}`} className="group block">
-      <div className="relative aspect-[3/4] overflow-hidden border border-line bg-bone-soft shadow-[0_1px_2px_rgba(30,35,32,0.05)] transition-shadow duration-300 group-hover:shadow-[0_18px_30px_-14px_rgba(30,35,32,0.28)]">
+      <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft shadow-[0_1px_2px_rgba(10,10,10,0.05)] transition-shadow duration-300 group-hover:shadow-[0_18px_30px_-14px_rgba(10,10,10,0.25)]">
         <SkeletonImage
           src={catalogImageUrl(imagePath)}
           alt={description ?? label}
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="group-hover:scale-[1.04]"
         />
-        <span className="absolute left-2 top-2 bg-bone/90 px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] text-ink-soft">
+        <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-ink-soft">
           {label}
         </span>
       </div>

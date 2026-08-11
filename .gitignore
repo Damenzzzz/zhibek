@@ -8,6 +8,13 @@ __pycache__/
 .venv/
 venv/
 
+# stray root-level node_modules (not part of any workspace here — apps/web
+# has its own package.json/node_modules; this one accidentally ended up in
+# the repo root and is too large to push to GitHub anyway, see supabase.exe)
+/node_modules/
+/package.json
+/package-lock.json
+
 # data (raw source collages are not committed — large, only needed locally
 # for scripts/process_photos.py). data/catalog IS committed: it's the small
 # (~KB-MB) processed output (cropped photos + items.db) that the deployed
