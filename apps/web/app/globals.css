@@ -57,6 +57,68 @@ html {
   scroll-behavior: smooth;
 }
 
+/* --- Анимации ------------------------------------------------------------
+   Лёгкие, ненавязчивые появления/переключения. Определены обычным CSS (не
+   через Tailwind-конфиг), классы применяются напрямую: animate-fade-in-up на
+   секциях, animate-fade-in-scale на переключаемых фото галереи, stagger-*
+   для покарточной задержки в сетке каталога. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.45s ease both;
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease both;
+}
+
+/* Покарточная задержка появления в сетке каталога — задаётся через inline
+   style (--stagger), чтобы не плодить десятки классов. */
+.stagger-item {
+  animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 45ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in-scale,
+  .animate-fade-in,
+  .stagger-item {
+    animation: none;
+  }
+}
+
 /* Надрубрика над заголовками секций — единая замена бывшей "золотой черты". */
 .eyebrow {
   display: inline-flex;

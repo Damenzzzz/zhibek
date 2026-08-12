@@ -176,8 +176,8 @@ export function TryonForm({
   // ?top=/?bottom= — читаем один раз при монтировании.
   const [topId, setTopId] = useState<string | null>(() => searchParams.get("top"));
   const [bottomId, setBottomId] = useState<string | null>(() => searchParams.get("bottom"));
-  const [shoesId, setShoesId] = useState<string | null>(null);
-  const [bagId, setBagId] = useState<string | null>(null);
+  const [shoesId, setShoesId] = useState<string | null>(() => searchParams.get("shoes"));
+  const [bagId, setBagId] = useState<string | null>(() => searchParams.get("bag"));
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TryonResult | null>(null);
@@ -304,11 +304,14 @@ export function TryonForm({
 
   if (!profile) {
     return (
-      <div className="mt-10 rounded-2xl border border-line bg-paper-soft px-5 py-8 text-center">
-        <p className="text-sm text-ink-soft">Сначала заполни анкету — нужно фото для примерки.</p>
+      <div className="mt-10 animate-fade-in-up rounded-2xl border border-line bg-paper-soft px-5 py-8 text-center">
+        <p className="text-sm text-ink-soft">
+          Сначала заполни анкету — для примерки нужна модель. Можно загрузить своё фото
+          <span className="text-ink"> или сгенерировать модель по параметрам</span>, если фото нет.
+        </p>
         <Link
           href="/profile"
-          className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white transition-all hover:scale-[1.02] hover:opacity-90 active:scale-95"
         >
           Заполнить анкету
         </Link>
@@ -439,7 +442,7 @@ export function TryonForm({
       )}
 
       {result && status === "idle" && (
-        <section className="border-t border-line pt-8">
+        <section className="animate-fade-in-up border-t border-line pt-8">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Результат</p>
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>

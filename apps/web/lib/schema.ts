@@ -8,6 +8,12 @@ export const catalogItems = sqliteTable("catalog_items", {
   color: text("color"),
   description: text("description"),
   imagePath: text("image_path").notNull(),
+  // JSON-массив относительных путей всех фото товара (обложка первой). Для
+  // товаров-папок из data/raw это несколько ракурсов; для кропов с коллажа —
+  // один путь, равный imagePath. Может быть null для старых записей — фронт
+  // тогда откатывается на [imagePath]. Заполняется scripts/process_photos.py
+  // и синхронизируется через lib/syncCatalog.ts.
+  images: text("images"),
   lookId: text("look_id").notNull(),
   sourcePhoto: text("source_photo").notNull(),
 });

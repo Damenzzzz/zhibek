@@ -5,7 +5,10 @@ export async function register() {
     if (result.skipped) {
       console.log("[catalog sync] data/catalog/items.db не найден, пропускаю");
     } else {
-      console.log(`[catalog sync] синхронизировано товаров: ${result.synced}`);
+      console.log(
+        `[catalog sync] синхронизировано товаров: ${result.synced}` +
+          (result.removed ? `, удалено устаревших: ${result.removed}` : "")
+      );
     }
   }
 }

@@ -168,11 +168,18 @@ def init_db(conn: sqlite3.Connection) -> None:
             color TEXT,
             description TEXT,
             image_path TEXT NOT NULL,
+            images TEXT,
             look_id TEXT NOT NULL,
             source_photo TEXT NOT NULL
         )
         """
     )
+    # images добавлена позже — на старых БД её нет, дописываем миграцией.
+    # images хранит JSON-массив всех фото товара (обложка первой); для товаров
+    # из папок data/raw это несколько ракурсов, для кропов с коллажа — один путь.
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(items)")}
+    if "images" not in columns:
+        conn.execute("ALTER TABLE items ADD COLUMN images TEXT")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS processed_photos (
@@ -195,11 +202,17 @@ def already_processed(conn: sqlite3.Connection, filename: str) -> bool:
 def clear_previous_results(conn: sqlite3.Connection, filename: str) -> None:
     """Удаляет старые товары и файлы для source_photo перед переобработкой (--force)."""
     rows = conn.execute(
-        "SELECT image_path FROM items WHERE source_photo = ?", (filename,)
+        "SELECT image_path, images FROM items WHERE source_photo = ?", (filename,)
     ).fetchall()
-    for (relative_path,) in rows:
-        old_file = ROOT / relative_path
-        old_file.unlink(missing_ok=True)
+    for image_path, images_json in rows:
+        paths = {image_path}
+        if images_json:
+            try:
+                paths.update(json.loads(images_json))
+            except (json.JSONDecodeError, TypeError):
+                pass
+        for relative_path in paths:
+            (ROOT / relative_path).unlink(missing_ok=True)
     conn.execute("DELETE FROM items WHERE source_photo = ?", (filename,))
     conn.execute("DELETE FROM processed_photos WHERE source_photo = ?", (filename,))
     conn.commit()
@@ -351,8 +364,8 @@ def save_detected_items(
         cursor.execute(
             """
             INSERT OR REPLACE INTO items
-                (id, sku, category, color, description, image_path, look_id, source_photo)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (id, sku, category, color, description, image_path, images, look_id, source_photo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 item_id,
@@ -361,6 +374,8 @@ def save_detected_items(
                 item.dominant_color,
                 item.short_description,
                 relative_path,
+                # Кроп с коллажа — единственное фото товара.
+                json.dumps([relative_path], ensure_ascii=False),
                 look_id,
                 source_photo,
             ),
@@ -433,18 +448,38 @@ def process_single_folder(
     item_id = sanitize_id(look_id)
     category_dir = CATALOG_DIR / detected.category
     category_dir.mkdir(parents=True, exist_ok=True)
-    image_path = category_dir / f"{item_id}.jpg"
-    image.save(image_path, "JPEG", quality=90)
 
-    relative_path = image_path.relative_to(ROOT).as_posix()
+    # Обложка + все остальные ракурсы из папки идут в каталог: обложка как
+    # <id>.jpg, остальные фото как <id>-1.jpg, <id>-2.jpg... — на карточке
+    # товара их можно листать стрелками (см. ProductGallery на фронте).
+    # Порядок: сначала обложка (самый "тяжёлый" файл), затем прочие по имени.
+    ordered = [cover] + [p for p in images if p != cover]
+    relative_paths: list[str] = []
+    for idx, src in enumerate(ordered):
+        angle = Image.open(src).convert("RGB")
+        out_path = category_dir / (f"{item_id}.jpg" if idx == 0 else f"{item_id}-{idx}.jpg")
+        angle.save(out_path, "JPEG", quality=90)
+        relative_paths.append(out_path.relative_to(ROOT).as_posix())
+
+    relative_path = relative_paths[0]
     cursor = conn.cursor()
     cursor.execute(
         """
         INSERT OR REPLACE INTO items
-            (id, sku, category, color, description, image_path, look_id, source_photo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (id, sku, category, color, description, image_path, images, look_id, source_photo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (item_id, None, detected.category, detected.dominant_color, detected.short_description, relative_path, look_id, source_photo),
+        (
+            item_id,
+            None,
+            detected.category,
+            detected.dominant_color,
+            detected.short_description,
+            relative_path,
+            json.dumps(relative_paths, ensure_ascii=False),
+            look_id,
+            source_photo,
+        ),
     )
     cursor.execute(
         """
