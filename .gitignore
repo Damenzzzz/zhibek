@@ -8,6 +8,11 @@ __pycache__/
 .venv/
 venv/
 
+# vercel CLI project link (local-only, used to deploy the monorepo root so
+# the project's Root Directory=apps/web setting resolves the same way the
+# GitHub integration does)
+/.vercel
+
 # stray root-level node_modules (not part of any workspace here — apps/web
 # has its own package.json/node_modules; this one accidentally ended up in
 # the repo root and is too large to push to GitHub anyway, see supabase.exe)

@@ -12,6 +12,24 @@ export function catalogImageUrl(imagePath: string): string {
   return `/catalog/${segments.join("/")}`;
 }
 
+// Разбирает JSON-колонку catalog_items.images (массив путей всех ракурсов
+// товара) в список публичных URL. Откатывается на [imagePath], если images
+// пустая/битая — старые записи и кропы с коллажа так и остаются одно-фото.
+export function catalogImageUrls(images: string | null, imagePath: string): string[] {
+  if (images) {
+    try {
+      const parsed = JSON.parse(images) as unknown;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const urls = parsed.filter((p): p is string => typeof p === "string").map(catalogImageUrl);
+        if (urls.length > 0) return urls;
+      }
+    } catch {
+      // битый JSON — используем обложку ниже
+    }
+  }
+  return [catalogImageUrl(imagePath)];
+}
+
 // Цвета в БД — свободный текст на русском от Gemini (см. process_photos.py),
 // поэтому это приблизительное сопоставление для цветного индикатора на карточке,
 // а не точная палитра.

@@ -130,7 +130,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 pb-8 pt-24 sm:px-6 sm:pb-12 sm:pt-28">
+      <main className="mx-auto w-full max-w-lg flex-1 animate-fade-in-up px-4 pb-8 pt-24 sm:px-6 sm:pb-12 sm:pt-28">
         <span className="eyebrow">Анкета</span>
         <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-ink">Твоя мерка</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">

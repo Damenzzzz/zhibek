@@ -43,11 +43,17 @@ export default function FittingRoomPage() {
   }, [ids]);
 
   function goToTryon() {
+    // Переносим в примерку по одному предмету каждой примеряемой категории —
+    // верх/низ/обувь/сумку (аксессуары FASHN не примеряет, их пропускаем).
     const top = items.find((item) => item.category === "top" || item.category === "outerwear");
     const bottom = items.find((item) => item.category === "bottom");
+    const shoes = items.find((item) => item.category === "shoes");
+    const bag = items.find((item) => item.category === "bag");
     const params = new URLSearchParams();
     if (top) params.set("top", top.id);
     if (bottom) params.set("bottom", bottom.id);
+    if (shoes) params.set("shoes", shoes.id);
+    if (bag) params.set("bag", bag.id);
     router.push(`/tryon${params.toString() ? `?${params.toString()}` : ""}`);
   }
 

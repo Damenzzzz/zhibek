@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
-import { catalogImageUrl, colorSwatch } from "@/lib/catalogDisplay";
-import { SkeletonImage } from "@/components/SkeletonImage";
+import { catalogImageUrls, colorSwatch } from "@/lib/catalogDisplay";
 import { AddToFittingRoomButton } from "@/components/catalog/AddToFittingRoomButton";
+import { ProductGallery } from "@/components/catalog/ProductGallery";
 import { ItemStrip } from "@/components/catalog/ItemStrip";
 import { getMatchingItems } from "@/lib/matching";
 
@@ -38,23 +38,17 @@ export default async function ProductPage({
 
   const label = CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category;
   const swatch = colorSwatch(item.color);
+  const images = catalogImageUrls(item.images, item.imagePath);
 
   return (
     <div className="flex flex-1 flex-col">
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-6 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:px-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-6 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:px-8 animate-fade-in-up">
         <Link href="/catalog" className="text-sm text-ink-soft transition-colors hover:text-ink">
           ← Каталог
         </Link>
 
         <div className="mt-4 grid gap-8 md:grid-cols-2 md:gap-12">
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-line bg-paper-soft">
-            <SkeletonImage
-              src={catalogImageUrl(item.imagePath)}
-              alt={item.description ?? label}
-              priority
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-          </div>
+          <ProductGallery images={images} alt={item.description ?? label} />
 
           <div className="flex flex-col">
             <span className="eyebrow">{label}</span>

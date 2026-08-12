@@ -54,15 +54,22 @@ export default async function CatalogPage({
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6">
-            {items.map((item) => (
-              <ProductCard
+            {items.map((item, i) => (
+              <div
                 key={item.id}
-                id={item.id}
-                category={item.category}
-                color={item.color}
-                description={item.description}
-                imagePath={item.imagePath}
-              />
+                className="stagger-item"
+                // Задержка растёт только для первого экрана карточек — дальше
+                // все появляются сразу, чтобы при скролле не было пустот.
+                style={{ "--stagger": Math.min(i, 11) } as React.CSSProperties}
+              >
+                <ProductCard
+                  id={item.id}
+                  category={item.category}
+                  color={item.color}
+                  description={item.description}
+                  imagePath={item.imagePath}
+                />
+              </div>
             ))}
           </div>
         )}
