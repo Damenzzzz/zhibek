@@ -12,12 +12,14 @@ const NAV = [
 // светлыми разделами как контрастная полоса выходных данных.
 export function SiteFooter() {
   return (
-    <footer id="about" className="grain relative overflow-hidden bg-noir text-silk">
+    // id="about" переехал на секцию главной (components/home/About.tsx) —
+    // "О нас" в меню теперь ведёт на разворот, а не в выходные данные.
+    <footer className="grain grain-dark relative overflow-hidden bg-espresso text-canvas">
       <div className="relative z-10 mx-auto max-w-[88rem] px-5 pt-16 sm:px-8 lg:px-14">
         <div className="grid gap-10 border-b border-hair pb-14 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="max-w-sm">
-            <span className="tag text-silk-dim">жібек · шёлк</span>
-            <p className="mt-5 font-grotesk text-sm leading-relaxed text-silk-dim">
+            <span className="tag text-canvas-dim">жібек · шёлк</span>
+            <p className="mt-5 font-grotesk text-sm leading-relaxed text-canvas-dim">
               Каталог образов и виртуальная примерочная. Комплекты собираются из готовых
               съёмок, примеряются на твою фигуру и остаются в истории — без походов
               в шоурум.
@@ -25,13 +27,13 @@ export function SiteFooter() {
           </div>
 
           <nav>
-            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-madder">
+            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-clay">
               Разделы
             </p>
-            <ul className="mt-5 flex flex-col gap-3 font-grotesk text-sm text-silk-dim">
+            <ul className="mt-5 flex flex-col gap-3 font-grotesk text-sm text-canvas-dim">
               {NAV.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="transition-colors hover:text-silk">
+                  <Link href={link.href} className="transition-colors hover:text-canvas">
                     {link.label}
                   </Link>
                 </li>
@@ -40,17 +42,17 @@ export function SiteFooter() {
           </nav>
 
           <div>
-            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-madder">
+            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-clay">
               О проекте
             </p>
-            <p className="mt-5 font-grotesk text-sm leading-relaxed text-silk-dim">
+            <p className="mt-5 font-grotesk text-sm leading-relaxed text-canvas-dim">
               Примерка работает на FASHN API, каталог собирается из фотосессий через
               Gemini. Учебный MVP.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 py-6 font-grotesk text-[10px] uppercase tracking-[0.28em] text-silk-dim">
+        <div className="flex flex-wrap items-center justify-between gap-4 py-6 font-grotesk text-[10px] uppercase tracking-[0.28em] text-canvas-dim">
           <span>© {new Date().getFullYear()} ZHIBEK</span>
           <span>Almaty</span>
         </div>
@@ -59,7 +61,7 @@ export function SiteFooter() {
       {/* Логотип во всю ширину, срезанный нижним краем — выходные данные
           разворота. aria-hidden: это графика, а не читаемый текст. */}
       <div aria-hidden className="relative z-10 select-none overflow-hidden">
-        <span className="stroke-silk block translate-y-[0.18em] whitespace-nowrap text-center font-editorial text-[19vw] uppercase leading-[0.75] tracking-[0.02em] opacity-40">
+        <span className="stroke-canvas block translate-y-[0.18em] whitespace-nowrap text-center font-editorial text-[19vw] uppercase leading-[0.75] tracking-[0.02em] opacity-40">
           Zhibek
         </span>
       </div>

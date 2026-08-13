@@ -29,11 +29,11 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="group relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-line bg-paper-soft">
+      <div className="group relative aspect-[3/4] w-full overflow-hidden bg-canvas-2 ring-1 ring-inset ring-hair-ink">
         <div
           aria-hidden
           className={
-            "absolute inset-0 bg-bone-soft transition-opacity duration-500 " +
+            "absolute inset-0 bg-canvas-2 transition-opacity duration-500 " +
             (loaded ? "opacity-0" : "animate-pulse opacity-100")
           }
         />
@@ -58,7 +58,7 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
               type="button"
               onClick={() => go(index - 1)}
               aria-label="Предыдущее фото"
-              className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-white/85 text-ink shadow-sm backdrop-blur transition-all hover:scale-105 hover:bg-white active:scale-95"
+              className="absolute left-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-canvas/90 text-ink backdrop-blur transition-colors hover:bg-clay hover:text-canvas"
             >
               <ChevronLeft />
             </button>
@@ -66,11 +66,11 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
               type="button"
               onClick={() => go(index + 1)}
               aria-label="Следующее фото"
-              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-white/85 text-ink shadow-sm backdrop-blur transition-all hover:scale-105 hover:bg-white active:scale-95"
+              className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-canvas/90 text-ink backdrop-blur transition-colors hover:bg-clay hover:text-canvas"
             >
               <ChevronRight />
             </button>
-            <span className="absolute bottom-2 right-2 rounded-full bg-ink/75 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white">
+            <span className="absolute bottom-0 right-0 bg-espresso px-3 py-1.5 font-grotesk text-[10px] tabular-nums tracking-[0.18em] text-canvas">
               {index + 1} / {count}
             </span>
           </>
@@ -86,8 +86,8 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
               onClick={() => go(i)}
               aria-label={`Фото ${i + 1}`}
               className={
-                "relative aspect-[3/4] w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all sm:w-20 " +
-                (i === index ? "border-ink" : "border-transparent opacity-70 hover:opacity-100")
+                "relative aspect-[3/4] w-16 shrink-0 overflow-hidden transition-all sm:w-20 " +
+                (i === index ? "ring-2 ring-clay" : "opacity-60 ring-1 ring-hair-ink hover:opacity-100")
               }
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
