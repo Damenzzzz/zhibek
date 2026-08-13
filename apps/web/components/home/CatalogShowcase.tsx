@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { ProductCard } from "@/components/catalog/ProductCard";
+import { LookCard } from "@/components/home/LookCard";
 
 interface Item {
   id: string;
@@ -14,34 +13,45 @@ export function CatalogShowcase({ items }: { items: Item[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="border-t border-line bg-paper-soft/60 py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="max-w-xl">
-            <span className="eyebrow">Каталог</span>
-            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-              Свежие образы недели
+    <section className="grain relative overflow-hidden bg-noir py-24 text-silk sm:py-32">
+      <div className="relative z-10 mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-14">
+        <div className="on-view flex flex-wrap items-end justify-between gap-6 border-b border-hair pb-8">
+          <div>
+            <span className="tag text-silk-dim">выпуск недели</span>
+            <h2 className="mt-5 font-editorial text-[clamp(2.25rem,6vw,4.5rem)] uppercase leading-[0.9] tracking-[-0.02em]">
+              Свежие
+              <br />
+              <span className="stroke-silk">образы</span>
             </h2>
           </div>
           <Link
             href="/catalog"
-            className="group inline-flex items-center gap-1.5 text-sm font-medium text-ink transition-colors hover:text-accent"
+            className="group inline-flex items-center gap-4 font-grotesk text-[11px] uppercase tracking-[0.28em] text-silk"
           >
-            Весь каталог
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+            весь каталог
+            <span className="relative block h-px w-12 bg-hair">
+              <span className="absolute inset-y-0 left-0 w-0 bg-madder transition-all duration-500 group-hover:w-full" />
+            </span>
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-4 md:grid-cols-4 lg:gap-x-6">
-          {items.map((item) => (
-            <ProductCard
+        {/* Сбитый по вертикали ритм: чётные карточки опущены — сетка перестаёт
+            читаться как ровная витрина маркетплейса. */}
+        <div className="mt-12 grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-4 lg:gap-x-8">
+          {items.map((item, i) => (
+            <div
               key={item.id}
-              id={item.id}
-              category={item.category}
-              color={item.color}
-              description={item.description}
-              imagePath={item.imagePath}
-            />
+              className={"on-view " + (i % 2 === 1 ? "md:mt-16" : "")}
+            >
+              <LookCard
+                id={item.id}
+                index={i + 1}
+                category={item.category}
+                color={item.color}
+                description={item.description}
+                imagePath={item.imagePath}
+              />
+            </div>
           ))}
         </div>
       </div>

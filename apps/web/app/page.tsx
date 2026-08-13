@@ -10,7 +10,9 @@ export default async function HomePage() {
   const items = await db.select().from(catalogItems).limit(8);
 
   return (
-    <div className="flex flex-1 flex-col">
+    // bg-noir на обёртке, чтобы полоса под футером на коротких экранах
+    // не проступала белым фоном body из светлой темы остальных разделов.
+    <div className="flex flex-1 flex-col bg-noir">
       <Hero />
       <HowItWorks />
       <CatalogShowcase items={items} />

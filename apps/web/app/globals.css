@@ -15,6 +15,22 @@
   --accent-contrast: #ffffff;
 }
 
+/* --- Editorial: арт-дирекшн главной страницы -----------------------------
+   Отдельный «журнальный» слой поверх светлой темы: тёплый near-black холст,
+   костяной шёлк текстом и один резкий акцент — марена (краситель шёлка,
+   отсюда и название бренда: жібек = шёлк). Главная живёт в этих токенах,
+   остальные разделы — в прежних paper/ink, поэтому /catalog, /tryon и
+   /profile редизайн не задевает. */
+:root {
+  --noir: #0c0b09;
+  --noir-raised: #16140f;
+  --silk: #f0eae0;
+  --silk-dim: #9d968a;
+  --madder: #e23d22;
+  --hair: rgba(240, 234, 224, 0.16);
+  --hair-ink: rgba(12, 11, 9, 0.16);
+}
+
 @theme inline {
   --color-bone: var(--paper);
   --color-bone-soft: var(--paper-soft);
@@ -26,6 +42,16 @@
   --color-line: var(--line);
   --font-display: var(--font-display-src);
   --font-sans: var(--font-onest);
+
+  --color-noir: var(--noir);
+  --color-noir-raised: var(--noir-raised);
+  --color-silk: var(--silk);
+  --color-silk-dim: var(--silk-dim);
+  --color-madder: var(--madder);
+  --color-hair: var(--hair);
+  --color-hair-ink: var(--hair-ink);
+  --font-editorial: var(--font-prata);
+  --font-grotesk: var(--font-golos);
 }
 
 /* Сайт всегда светлый, независимо от системной темы браузера — это
@@ -115,6 +141,140 @@ html {
   .animate-fade-in-scale,
   .animate-fade-in,
   .stagger-item {
+    animation: none;
+  }
+}
+
+/* --- Editorial: приёмы главной ------------------------------------------- */
+
+/* Зерно поверх тёмных плашек — снимает "цифровую" плоскость заливки.
+   Turbulence зашит data-URI, чтобы не тянуть внешний файл. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.42;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
+}
+
+/* Вертикальные волоски — намёк на нити основы в ткани. */
+.warp-lines {
+  background-image: linear-gradient(to right, var(--hair) 1px, transparent 1px);
+  background-size: calc(100% / 6) 100%;
+}
+
+/* Контурная типографика: выключенная заливка + обводка. Используется на
+   гигантских цифрах и одной строке заголовка — держит плотность полосы,
+   не перегружая её массой. */
+.stroke-silk {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--silk);
+}
+.stroke-noir {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--noir);
+  transition: -webkit-text-stroke-color 0.45s ease;
+}
+.group:hover .stroke-noir {
+  -webkit-text-stroke-color: var(--madder);
+}
+
+/* Микро-рубрика на тёмном/светлом — editorial-версия .eyebrow. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+.tag::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: var(--madder);
+}
+
+/* Бегущая строка внизу первого экрана. Контент дублируется в разметке,
+   поэтому сдвиг ровно на половину трека даёт бесшовный цикл. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  animation: marquee 32s linear infinite;
+}
+
+/* Построчный выезд заголовка из-под маски (родитель — overflow-hidden).
+   Задержка задаётся inline через --d, чтобы строки вскрывались каскадом. */
+@keyframes reveal-line {
+  from {
+    opacity: 0;
+    transform: translateY(110%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.reveal-line {
+  display: block;
+  animation: reveal-line 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.reveal-soft {
+  animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+
+/* Появление по скроллу без JS. В браузерах без animation-timeline анимация
+   отыграет на загрузке — контент всё равно окажется видимым. */
+.on-view {
+  animation: rise 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-timeline: view();
+  animation-range: entry 4% cover 24%;
+}
+
+/* Ползунок «до/после»: нативный input растянут на всё фото и невидим — он
+   даёт перетаскивание, тап и стрелки с клавиатуры разом. Бегунок сжат до
+   1px, чтобы значение совпадало с позицией курсора без краевой поправки. */
+.slider-raw::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1px;
+  height: 100%;
+}
+.slider-raw::-moz-range-thumb {
+  width: 1px;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .reveal-line,
+  .reveal-soft,
+  .on-view {
     animation: none;
   }
 }

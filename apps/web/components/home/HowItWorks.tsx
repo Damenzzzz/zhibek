@@ -1,45 +1,71 @@
-import { Shirt, SlidersHorizontal, Wand2 } from "lucide-react";
-
 const STEPS = [
   {
-    icon: Shirt,
     title: "Выбери образ",
-    text: "Пролистай каталог — вещи собраны в готовые образы, можно взять верх, низ или всё сразу.",
+    text: "Каталог собран образами целиком: берёшь верх, низ или комплект одним движением — вещи уже подобраны друг к другу на съёмке.",
+    meta: "каталог",
   },
   {
-    icon: SlidersHorizontal,
     title: "Задай параметры",
-    text: "Рост, вес, телосложение, возраст, тон кожи, размер и поза — чем точнее анкета, тем точнее модель.",
+    text: "Рост, вес, телосложение, возраст, тон кожи, размер и поза. Анкета заполняется один раз и живёт в браузере — регистрации нет.",
+    meta: "анкета",
   },
   {
-    icon: Wand2,
     title: "Примерь за секунды",
-    text: "FASHN накладывает вещь на фигуру и присылает результат «До / После» — сравнивай и скачивай.",
+    text: "FASHN кладёт вещь на фигуру и отдаёт кадр «до / после». Сравниваешь, скачиваешь, откладываешь в примерочную.",
+    meta: "результат",
   },
 ];
 
+// Светлая полоса-разворот между тёмными секциями: даёт странице ритм
+// «журнальной» вёрстки и делает шаги перечнем, а не тремя одинаковыми
+// карточками. Строка при наведении выворачивается в чёрный на всю ширину
+// экрана — отсюда before-псевдоэлемент с выносом за поля контейнера.
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="scroll-mt-20 border-t border-line bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="max-w-xl">
-          <span className="eyebrow">Как это работает</span>
-          <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            Три шага до примерки
-          </h2>
+    <section
+      id="how-it-works"
+      className="relative scroll-mt-24 overflow-hidden bg-silk py-24 text-noir sm:py-32"
+    >
+      <div className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-14">
+        <div className="on-view flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <span className="tag text-noir/50">как это работает</span>
+            <h2 className="mt-5 font-editorial text-[clamp(2.25rem,6vw,4.5rem)] uppercase leading-[0.9] tracking-[-0.02em]">
+              Три шага
+              <br />
+              до примерки
+            </h2>
+          </div>
+          <p className="max-w-xs font-grotesk text-[13px] leading-relaxed text-noir/55">
+            Ни очереди в кабинку, ни возвратов «не подошло». Всё, что нужно, —
+            фотография или анкета.
+          </p>
         </div>
 
-        <div className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-6">
+        <div className="mt-16 border-b border-hair-ink">
           {STEPS.map((step, i) => (
-            <div key={step.title} className="relative rounded-2xl border border-line bg-paper-soft p-6">
-              <span className="absolute right-5 top-5 font-display text-3xl font-semibold text-line">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white">
-                <step.icon className="h-5 w-5" strokeWidth={1.75} />
-              </span>
-              <h3 className="mt-5 text-lg font-semibold text-ink">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{step.text}</p>
+            <div
+              key={step.title}
+              className="group relative cursor-default border-t border-hair-ink transition-colors duration-500"
+            >
+              <span className="pointer-events-none absolute inset-y-0 left-[-50vw] right-[-50vw] bg-noir opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+              <div className="relative z-10 grid items-baseline gap-x-8 gap-y-4 py-9 md:grid-cols-12 md:py-12">
+                <span className="stroke-noir col-span-2 font-editorial text-[clamp(2.75rem,7vw,5.5rem)] leading-none">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="col-span-4">
+                  <span className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-madder">
+                    {step.meta}
+                  </span>
+                  <h3 className="mt-2 font-editorial text-2xl uppercase leading-tight tracking-tight transition-colors duration-500 group-hover:text-silk sm:text-3xl">
+                    {step.title}
+                  </h3>
+                </div>
+                <p className="col-span-5 col-start-8 font-grotesk text-sm leading-relaxed text-noir/60 transition-colors duration-500 group-hover:text-silk/70">
+                  {step.text}
+                </p>
+              </div>
             </div>
           ))}
         </div>
