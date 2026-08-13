@@ -1,9 +1,9 @@
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
-import { notInArray } from "drizzle-orm";
+import { and, isNotNull, notInArray } from "drizzle-orm";
 import { db } from "./db";
-import { catalogItems } from "./schema";
+import { catalogItems, tryonHistory } from "./schema";
 
 // data/catalog/{items.db,<category>/*.jpg} is written by
 // scripts/process_photos.py (Python pipeline), two levels up from apps/web.
@@ -190,11 +190,34 @@ export async function syncCatalogItems(): Promise<{
         });
     }
 
-    // Удаляем товары, которых больше нет в источнике (например, снятые с
-    // публикации дубликаты после переименования папок в data/raw) — иначе
-    // старые записи вечно висели бы в каталоге и примерке (upsert их не трогал).
+    // Удаляем товары, которых больше нет в источнике (снятые с публикации:
+    // удалённые из data/catalog файлы, дубликаты после переименования папок
+    // в data/raw) — иначе старые записи вечно висели бы в каталоге и примерке,
+    // upsert выше их не трогает.
+    //
+    // rows пуст — значит источник прочитать не удалось (например, файлы фото
+    // не доехали до среды выполнения). Это не повод стирать весь каталог.
     if (rows.length > 0) {
       const sourceIds = rows.map((item) => item.id);
+
+      // tryon_history ссылается на catalog_items четырьмя внешними ключами
+      // (верх/низ/обувь/сумка). Прошлые примерки снятых с публикации вещей
+      // удалять нельзя — картинка результата остаётся ценной, — поэтому
+      // обнуляем сами ссылки. Без этого DELETE ниже падает с
+      // SQLITE_CONSTRAINT: FOREIGN KEY constraint failed, а вместе с ним
+      // и весь instrumentation hook (см. instrumentation.ts).
+      for (const column of [
+        "topItemId",
+        "bottomItemId",
+        "shoesItemId",
+        "bagItemId",
+      ] as const) {
+        await tx
+          .update(tryonHistory)
+          .set({ [column]: null })
+          .where(and(isNotNull(tryonHistory[column]), notInArray(tryonHistory[column], sourceIds)));
+      }
+
       const result = await tx.delete(catalogItems).where(notInArray(catalogItems.id, sourceIds));
       removed = result.rowsAffected ?? 0;
     }
