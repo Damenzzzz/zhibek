@@ -1,42 +1,51 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { SkeletonImage } from "@/components/SkeletonImage";
+import { BeforeAfter } from "@/components/home/BeforeAfter";
+
+const NOTES = [
+  ["01", "История сохраняется — вернуться и пересмотреть можно в любой момент."],
+  ["02", "Нет своего фото — модель соберётся по анкете: рост, фигура, поза."],
+  ["03", "Понравилось — образ уходит в примерочную, оттуда к покупке."],
+];
 
 export function TryonShowcase() {
   return (
-    <section className="border-t border-line bg-white py-20 sm:py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
-        <div className="order-2 lg:order-1">
-          <span className="eyebrow">Результат</span>
-          <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            Смотри «до» и «после» в одном экране
+    <section className="relative overflow-hidden border-t border-hair bg-noir-raised py-24 text-silk sm:py-32">
+      <div className="mx-auto grid max-w-[88rem] items-center gap-14 px-5 sm:px-8 lg:grid-cols-[1fr_0.85fr] lg:gap-20 lg:px-14">
+        <div className="on-view order-2 lg:order-1">
+          <span className="tag text-silk-dim">результат</span>
+          <h2 className="mt-5 font-editorial text-[clamp(2.25rem,6vw,4.5rem)] uppercase leading-[0.9] tracking-[-0.02em]">
+            Потяни
+            <br />
+            и&nbsp;<span className="stroke-silk">сравни</span>
           </h2>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-ink-soft sm:text-base">
-            Каждая примерка сохраняется в историю — можно вернуться и сравнить образы,
-            скачать понравившийся результат или сразу перейти к покупке.
+          <p className="mt-6 max-w-md font-grotesk text-[15px] leading-relaxed text-silk-dim">
+            Слева — исходный кадр, справа — та же фигура после примерки. Шторка
+            двигается мышью, пальцем и стрелками с клавиатуры.
           </p>
+
+          <dl className="mt-10 max-w-md border-t border-hair">
+            {NOTES.map(([num, text]) => (
+              <div key={num} className="flex gap-6 border-b border-hair py-4">
+                <dt className="font-editorial text-sm text-madder">{num}</dt>
+                <dd className="font-grotesk text-[13px] leading-relaxed text-silk/70">{text}</dd>
+              </div>
+            ))}
+          </dl>
+
           <Link
             href="/tryon"
-            className="group mt-7 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="group relative mt-10 inline-flex items-center bg-silk px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-noir"
           >
-            Попробовать примерку
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+            <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-silk transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
+            попробовать примерку
           </Link>
         </div>
 
-        <div className="order-1 grid grid-cols-2 gap-3 sm:gap-4 lg:order-2">
-          <div>
-            <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
-              <SkeletonImage src="/hero-model.png" alt="До примерки" sizes="(max-width: 1024px) 45vw, 22vw" className="object-top" />
-            </div>
-            <p className="mt-2 text-center text-[11px] font-medium uppercase tracking-[0.15em] text-ink-soft">До</p>
-          </div>
-          <div>
-            <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
-              <SkeletonImage src="/tryon-demo.png" alt="После примерки" sizes="(max-width: 1024px) 45vw, 22vw" className="object-top" />
-            </div>
-            <p className="mt-2 text-center text-[11px] font-medium uppercase tracking-[0.15em] text-ink-soft">После</p>
-          </div>
+        <div className="on-view order-1 mx-auto w-full max-w-sm lg:order-2 lg:max-w-none">
+          <BeforeAfter before="/hero-model.png" after="/tryon-demo.png" />
+          <p className="mt-3 text-center font-grotesk text-[10px] uppercase tracking-[0.3em] text-silk-dim">
+            fashn · одна примерка
+          </p>
         </div>
       </div>
     </section>

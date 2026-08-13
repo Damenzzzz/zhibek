@@ -1,84 +1,151 @@
 import Link from "next/link";
-import { ArrowRight, ChevronDown, Sparkles } from "lucide-react";
 import { SkeletonImage } from "@/components/SkeletonImage";
+
+// Строки бегущей ленты внизу экрана. Дублируются в разметке ×2 — так
+// @keyframes marquee (сдвиг на -50%) замыкается без стыка.
+const TICKER = [
+  "жібек — шёлк",
+  "виртуальная примерочная",
+  "верх · низ · образ целиком",
+  "без похода в шоурум",
+  "fashn ai",
+];
+
+const STATS = [
+  { value: "5–20", unit: "сек", note: "одна примерка" },
+  { value: "01", unit: "анкета", note: "и весь каталог твой" },
+  { value: "00", unit: "шоурумов", note: "ехать никуда не надо" },
+];
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-screen flex-col justify-center overflow-hidden pt-20">
-      {/* Декоративные пятна на фоне — лёгкий акцент без "молочного" узора */}
-      <div className="pointer-events-none absolute -left-32 top-1/4 h-72 w-72 rounded-full bg-accent-soft blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-paper-soft blur-3xl" />
+    <section className="grain relative flex min-h-screen flex-col overflow-hidden bg-noir text-silk">
+      <div className="warp-lines pointer-events-none absolute inset-0 opacity-60" />
 
-      <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-8 lg:py-0">
-        <div className="max-w-xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-medium text-ink-soft">
-            <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={2} />
-            Примерка на базе AI за секунды
+      {/* Боковая колонтитульная полоса — вертикальный набор вдоль левого поля */}
+      <div className="pointer-events-none absolute left-6 top-1/2 z-10 hidden -translate-y-1/2 xl:block">
+        <span className="flex items-center gap-4 font-grotesk text-[10px] uppercase tracking-[0.4em] text-silk-dim [writing-mode:vertical-rl]">
+          <span className="h-1.5 w-1.5 rounded-full bg-madder" />
+          Almaty · выпуск 01
+        </span>
+      </div>
+
+      <div className="relative z-10 mx-auto flex w-full max-w-[88rem] flex-1 flex-col px-5 pb-28 pt-32 sm:px-8 lg:px-14 lg:pt-36">
+        <span className="tag reveal-soft text-silk-dim" style={{ "--d": 80 } as React.CSSProperties}>
+          примерка на нейросети
+        </span>
+
+        {/* Каждая строка — своя маска overflow-hidden, чтобы текст выезжал
+            из-под края, а не просто проявлялся. */}
+        <h1 className="mt-7 font-editorial uppercase leading-[0.84] tracking-[-0.02em] text-[clamp(3rem,10.5vw,9.5rem)]">
+          <span className="block overflow-hidden pb-[0.06em]">
+            <span className="reveal-line" style={{ "--d": 120 } as React.CSSProperties}>
+              Примерь
+            </span>
           </span>
+          <span className="block overflow-hidden pb-[0.06em]">
+            <span
+              className="reveal-line stroke-silk pl-[0.12em]"
+              style={{ "--d": 240 } as React.CSSProperties}
+            >
+              образ
+            </span>
+          </span>
+          {/* Третья строка сидит поверх фото — на ней и держится наложение */}
+          <span className="relative z-30 block overflow-hidden pb-[0.06em]">
+            <span className="reveal-line" style={{ "--d": 360 } as React.CSSProperties}>
+              до&nbsp;покупки
+            </span>
+          </span>
+        </h1>
 
-          <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-ink sm:text-6xl lg:text-[4.25rem]">
-            Примерь образ,
-            <br />
-            прежде чем купить
-          </h1>
+        {/* Фото врезано в правое поле и уходит под заголовок; на мобильном
+            становится обычным блоком в потоке. */}
+        <div
+          className="reveal-soft relative z-20 mx-auto mt-10 w-full max-w-[17rem] lg:absolute lg:right-10 lg:top-32 lg:mt-0 lg:w-[30vw] lg:max-w-[26rem] xl:right-20"
+          style={{ "--d": 520 } as React.CSSProperties}
+        >
+          <div className="relative aspect-[3/4] w-full overflow-hidden bg-noir-raised">
+            <SkeletonImage
+              src="/hero-model.png"
+              alt="Модель для примерки ZHIBEK"
+              priority
+              sizes="(max-width: 1024px) 70vw, 30vw"
+              placeholderClassName="bg-noir-raised"
+            />
+            <span className="absolute inset-0 ring-1 ring-inset ring-hair" />
+          </div>
+          <p className="mt-3 flex items-center justify-between font-grotesk text-[10px] uppercase tracking-[0.28em] text-silk-dim">
+            <span>модель сгенерирована ai</span>
+            <span className="text-madder">01</span>
+          </p>
+        </div>
 
-          <p className="mt-6 max-w-md text-base leading-relaxed text-ink-soft sm:text-lg">
-            ZHIBEK собирает каталог из реальных фотосессий и накладывает вещи на твою
-            фигуру через нейросеть FASHN — верх, низ или целый образ, за одну примерку.
+        <div
+          className="reveal-soft relative z-30 mt-10 max-w-md lg:mt-14"
+          style={{ "--d": 620 } as React.CSSProperties}
+        >
+          <p className="font-grotesk text-[15px] leading-relaxed text-silk-dim sm:text-base">
+            Каталог собран из живых съёмок, а не с фотостоков. Нейросеть FASHN кладёт вещь
+            на твою фигуру — верх, низ или образ целиком за одну примерку.
           </p>
 
-          <div className="mt-9 flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap items-stretch gap-3">
+            {/* Прямоугольник со смещённой рамкой вместо капсулы — рамка
+                догоняет кнопку по наведению. */}
             <Link
               href="/catalog"
-              className="group inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+              className="group relative inline-flex items-center bg-madder px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-silk"
             >
-              Смотреть каталог
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+              <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-madder transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
+              смотреть каталог
             </Link>
             <Link
               href="/tryon"
-              className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-6 py-3.5 text-sm font-medium text-ink transition-colors hover:border-ink/40"
+              className="inline-flex items-center border border-hair px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-silk transition-colors duration-300 hover:border-silk"
             >
-              Начать примерку
+              начать примерку
             </Link>
           </div>
-
-          <div className="mt-10 flex items-center gap-6 text-sm text-ink-soft">
-            <div>
-              <p className="font-display text-2xl font-semibold text-ink">5–20с</p>
-              <p className="mt-0.5">на одну примерку</p>
-            </div>
-            <div className="h-8 w-px bg-line" />
-            <div>
-              <p className="font-display text-2xl font-semibold text-ink">100%</p>
-              <p className="mt-0.5">без похода в шоурум</p>
-            </div>
-          </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-sm lg:max-w-none">
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[2rem] border border-line bg-paper-soft shadow-[0_40px_80px_-30px_rgba(10,10,10,0.25)]">
-            <SkeletonImage src="/hero-model.png" alt="Модель для примерки ZHIBEK" priority sizes="(max-width: 1024px) 90vw, 40vw" />
-          </div>
-          <div className="absolute -left-4 bottom-6 flex items-center gap-3 rounded-2xl border border-line bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:-left-8">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-accent">
-              <Sparkles className="h-4 w-4" strokeWidth={2} />
-            </span>
-            <div className="text-left">
-              <p className="text-xs font-semibold text-ink">Модель сгенерирована AI</p>
-              <p className="text-[11px] text-ink-soft">Без фото? Не проблема</p>
+        <dl
+          className="reveal-soft relative z-30 mt-14 grid max-w-2xl grid-cols-3 gap-px border-t border-hair pt-6 lg:mt-auto"
+          style={{ "--d": 760 } as React.CSSProperties}
+        >
+          {STATS.map((s) => (
+            <div key={s.note} className="pr-4">
+              <dt className="font-editorial text-3xl leading-none sm:text-4xl">
+                {s.value}
+                <span className="ml-1.5 font-grotesk text-[10px] uppercase tracking-[0.2em] text-madder">
+                  {s.unit}
+                </span>
+              </dt>
+              <dd className="mt-2 font-grotesk text-[11px] uppercase tracking-[0.16em] text-silk-dim">
+                {s.note}
+              </dd>
             </div>
-          </div>
-        </div>
+          ))}
+        </dl>
       </div>
 
-      <Link
-        href="#how-it-works"
-        aria-label="Пролистать вниз"
-        className="mx-auto mb-8 hidden h-10 w-10 items-center justify-center rounded-full border border-line text-ink-soft transition-colors hover:border-ink/40 hover:text-ink sm:flex"
-      >
-        <ChevronDown className="h-5 w-5 animate-bounce" strokeWidth={1.75} />
-      </Link>
+      <div className="relative z-10 overflow-hidden border-y border-hair bg-madder py-3">
+        <div className="marquee-track flex w-max">
+          {[0, 1].map((copy) => (
+            <div key={copy} aria-hidden={copy === 1} className="flex shrink-0">
+              {TICKER.map((word) => (
+                <span
+                  key={word}
+                  className="flex items-center gap-8 whitespace-nowrap px-8 font-grotesk text-[11px] uppercase tracking-[0.3em] text-silk"
+                >
+                  {word}
+                  <span className="h-1 w-1 rounded-full bg-silk/60" />
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
