@@ -41,6 +41,65 @@ function imagePathsOf(item: SourceItemRow): string[] {
   return Array.from(new Set(paths.filter(Boolean)));
 }
 
+// Относительный путь внутри data/catalog ("top/143595156.jpg") из значения,
+// которое лежит в БД ("data/catalog/top/143595156.jpg" или уже относительное).
+function relativeImagePath(imagePath: string): string {
+  const marker = "data/catalog/";
+  const normalized = imagePath.split("\\").join("/");
+  const idx = normalized.indexOf(marker);
+  return idx >= 0 ? normalized.slice(idx + marker.length) : normalized;
+}
+
+// Фото можно удалить прямо из data/catalog/<category>/, не трогая items.db —
+// так товар и снимается с публикации вручную. Строка в items.db при этом
+// остаётся, поэтому источником правды считаем файл: нет обложки на диске —
+// товара нет. Ракурсы без файла просто выкидываются из images.
+function withExistingFiles(rows: SourceItemRow[]): SourceItemRow[] {
+  const kept: SourceItemRow[] = [];
+
+  for (const item of rows) {
+    if (!fs.existsSync(path.join(SOURCE_DIR, relativeImagePath(item.image_path)))) continue;
+
+    const angles = imagePathsOf(item).filter((p) =>
+      fs.existsSync(path.join(SOURCE_DIR, relativeImagePath(p)))
+    );
+    kept.push({ ...item, images: JSON.stringify(angles) });
+  }
+
+  return kept;
+}
+
+// Убираем из public/catalog файлы, которых больше нет среди актуальных
+// товаров. Без этого удалённые вещи продолжают отдаваться статикой: каталог
+// берёт картинки отсюда, а не из data/catalog (см. комментарий у
+// PUBLIC_CATALOG_DIR), и «удалённый» товар остаётся видимым после деплоя.
+function prunePublicCatalog(rows: SourceItemRow[]): number {
+  if (process.env.VERCEL || !fs.existsSync(PUBLIC_CATALOG_DIR)) return 0;
+
+  const keep = new Set<string>();
+  for (const item of rows) {
+    for (const p of imagePathsOf(item)) keep.add(relativeImagePath(p));
+  }
+
+  let deleted = 0;
+  for (const category of fs.readdirSync(PUBLIC_CATALOG_DIR)) {
+    const dir = path.join(PUBLIC_CATALOG_DIR, category);
+    if (!fs.statSync(dir).isDirectory()) continue;
+
+    for (const file of fs.readdirSync(dir)) {
+      if (keep.has(`${category}/${file}`)) continue;
+      try {
+        fs.unlinkSync(path.join(dir, file));
+        deleted++;
+      } catch (err) {
+        console.warn(`[catalog sync] не удалось удалить ${category}/${file}:`, err);
+      }
+    }
+  }
+
+  return deleted;
+}
+
 function copyCatalogImages(rows: SourceItemRow[]): void {
   // На Vercel /var/task — read-only FS: сюда писать нельзя и не нужно,
   // public/catalog уже закоммичен и уезжает в деплой статикой (см. комментарий
@@ -48,11 +107,9 @@ function copyCatalogImages(rows: SourceItemRow[]): void {
   // instrumentation hook на каждом запросе к /catalog.
   if (process.env.VERCEL) return;
 
-  const marker = "data/catalog/";
   for (const item of rows) {
     for (const imagePath of imagePathsOf(item)) {
-      const idx = imagePath.indexOf(marker);
-      const relative = idx >= 0 ? imagePath.slice(idx + marker.length) : imagePath;
+      const relative = relativeImagePath(imagePath);
       const from = path.join(SOURCE_DIR, relative);
       const to = path.join(PUBLIC_CATALOG_DIR, relative);
       if (!fs.existsSync(from) || fs.existsSync(to)) continue;
@@ -69,15 +126,20 @@ function copyCatalogImages(rows: SourceItemRow[]): void {
   }
 }
 
-export async function syncCatalogItems(): Promise<{ synced: number; removed: number; skipped: boolean }> {
+export async function syncCatalogItems(): Promise<{
+  synced: number;
+  removed: number;
+  pruned: number;
+  skipped: boolean;
+}> {
   if (!fs.existsSync(SOURCE_DB_PATH)) {
-    return { synced: 0, removed: 0, skipped: true };
+    return { synced: 0, removed: 0, pruned: 0, skipped: true };
   }
 
   const sourceDb = new Database(SOURCE_DB_PATH, { readonly: true, fileMustExist: true });
-  let rows: SourceItemRow[];
+  let allRows: SourceItemRow[];
   try {
-    rows = sourceDb
+    allRows = sourceDb
       .prepare(
         "SELECT id, sku, category, color, description, image_path, images, look_id, source_photo FROM items"
       )
@@ -86,10 +148,15 @@ export async function syncCatalogItems(): Promise<{ synced: number; removed: num
     sourceDb.close();
   }
 
+  // Фильтр по наличию файла — до всего остального: дальше эти строки считаются
+  // единственным актуальным составом каталога.
+  const rows = withExistingFiles(allRows);
+
   // Копируем фото в public/catalog ДО обращения к БД — это чисто локальная
   // файловая операция для деплоя (см. комментарий у PUBLIC_CATALOG_DIR), не
   // зависит от того, доступна ли (Turso) база.
   copyCatalogImages(rows);
+  const pruned = prunePublicCatalog(rows);
 
   let removed = 0;
   await db.transaction(async (tx) => {
@@ -133,5 +200,5 @@ export async function syncCatalogItems(): Promise<{ synced: number; removed: num
     }
   });
 
-  return { synced: rows.length, removed, skipped: false };
+  return { synced: rows.length, removed, pruned, skipped: false };
 }

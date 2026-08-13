@@ -6,5 +6,9 @@ const result = await syncCatalogItems();
 if (result.skipped) {
   console.log("data/catalog/items.db не найден, пропускаю");
 } else {
-  console.log(`Синхронизировано товаров: ${result.synced}`);
+  console.log(
+    `Синхронизировано товаров: ${result.synced}` +
+      (result.removed ? `, удалено из БД: ${result.removed}` : "") +
+      (result.pruned ? `, вычищено картинок: ${result.pruned}` : "")
+  );
 }

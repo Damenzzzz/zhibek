@@ -41,37 +41,62 @@ export default async function ProductPage({
   const images = catalogImageUrls(item.images, item.imagePath);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-6 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:px-8 animate-fade-in-up">
-        <Link href="/catalog" className="text-sm text-ink-soft transition-colors hover:text-ink">
-          ← Каталог
+    <div className="flex flex-1 flex-col bg-canvas">
+      <main className="mx-auto w-full max-w-[88rem] flex-1 animate-fade-in-up px-5 pb-20 pt-28 sm:px-8 lg:px-14">
+        <Link
+          href="/catalog"
+          className="group inline-flex items-center gap-3 font-grotesk text-[10px] uppercase tracking-[0.28em] text-ink-soft transition-colors hover:text-ink"
+        >
+          <span className="block h-px w-6 bg-clay transition-all duration-300 group-hover:w-10" />
+          Каталог
         </Link>
 
-        <div className="mt-4 grid gap-8 md:grid-cols-2 md:gap-12">
+        <div className="mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <ProductGallery images={images} alt={item.description ?? label} />
 
-          <div className="flex flex-col">
-            <span className="eyebrow">{label}</span>
-            <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+          <div className="flex flex-col lg:pt-4">
+            <span className="tag text-ink-soft">{label}</span>
+            <h1 className="mt-5 font-display text-[clamp(1.75rem,4vw,3.25rem)] uppercase leading-[0.95] tracking-[-0.02em] text-ink">
               {item.description ?? label}
             </h1>
 
-            {item.color && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-ink-soft">
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full border border-ink/15"
-                  style={{ backgroundColor: swatch ?? "transparent" }}
-                />
-                <span className="capitalize">{item.color}</span>
-                {item.sku && <span className="text-ink-soft/60">· арт. {item.sku}</span>}
+            <dl className="mt-8 border-t border-hair-ink font-grotesk">
+              {item.color && (
+                <div className="grid grid-cols-[7rem_1fr] gap-4 border-b border-hair-ink py-3.5">
+                  <dt className="text-[10px] uppercase tracking-[0.24em] text-clay">Цвет</dt>
+                  <dd className="flex items-center gap-2 text-[13px] text-ink">
+                    <span
+                      aria-hidden
+                      className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-hair-ink"
+                      style={{ backgroundColor: swatch ?? "transparent" }}
+                    />
+                    <span className="capitalize">{item.color}</span>
+                  </dd>
+                </div>
+              )}
+              {item.sku && (
+                <div className="grid grid-cols-[7rem_1fr] gap-4 border-b border-hair-ink py-3.5">
+                  <dt className="text-[10px] uppercase tracking-[0.24em] text-clay">Артикул</dt>
+                  <dd className="text-[13px] tabular-nums text-ink">{item.sku}</dd>
+                </div>
+              )}
+              <div className="grid grid-cols-[7rem_1fr] gap-4 border-b border-hair-ink py-3.5">
+                <dt className="text-[10px] uppercase tracking-[0.24em] text-clay">Ракурсов</dt>
+                <dd className="text-[13px] tabular-nums text-ink">{images.length}</dd>
               </div>
-            )}
+            </dl>
 
-            <div className="mt-8">
+            <div className="mt-8 flex flex-wrap gap-3">
               <AddToFittingRoomButton itemId={item.id} />
+              <Link
+                href={`/tryon?${item.category === "bottom" ? "bottom" : item.category === "shoes" ? "shoes" : item.category === "bag" ? "bag" : "top"}=${item.id}`}
+                className="inline-flex items-center border border-hair-ink px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-ink transition-colors hover:border-ink"
+              >
+                Примерить сразу
+              </Link>
             </div>
 
-            <div className="mt-10 flex flex-col gap-8 border-t border-line pt-8">
+            <div className="mt-12 flex flex-col gap-8">
               <ItemStrip title="Часть образа" items={lookItems} />
               <ItemStrip title="Дополните образ" items={matches} />
             </div>

@@ -7,7 +7,8 @@ export async function register() {
     } else {
       console.log(
         `[catalog sync] синхронизировано товаров: ${result.synced}` +
-          (result.removed ? `, удалено устаревших: ${result.removed}` : "")
+          (result.removed ? `, удалено из БД: ${result.removed}` : "") +
+          (result.pruned ? `, вычищено картинок: ${result.pruned}` : "")
       );
     }
   }

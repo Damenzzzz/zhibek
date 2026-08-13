@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
+import { Carousel } from "@/components/tryon/Carousel";
 
 // Клиентский предохранитель поверх серверного poll-таймаута FASHN (3 минуты,
 // см. lib/fashn.ts) — если сервер вообще не ответит, не виснем бесконечно.
@@ -48,20 +49,28 @@ function ItemThumb({
     <button
       type="button"
       onClick={onClick}
-      className={
-        "w-24 shrink-0 rounded-2xl border-2 p-1 text-left transition-colors sm:w-28 " +
-        (selected ? "border-accent" : "border-transparent hover:border-line")
-      }
+      aria-pressed={selected}
+      className="group w-24 shrink-0 text-left sm:w-28"
     >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-paper-soft">
+      <div
+        className={
+          "relative aspect-[3/4] overflow-hidden bg-canvas-2 transition-all duration-300 " +
+          (selected ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas" : "ring-1 ring-hair-ink")
+        }
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={catalogImageUrl(item.imagePath)}
           alt={item.description ?? item.category}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        {selected && (
+          <span className="absolute bottom-0 left-0 right-0 bg-clay py-1 text-center font-grotesk text-[9px] uppercase tracking-[0.2em] text-canvas">
+            выбрано
+          </span>
+        )}
       </div>
-      <p className="mt-1.5 line-clamp-2 px-1 pb-1 text-[10px] leading-tight text-ink-soft">
+      <p className="mt-2 line-clamp-2 font-grotesk text-[10px] leading-tight text-ink-soft">
         {item.description ?? CATEGORY_LABELS[item.category as CatalogCategory]}
       </p>
     </button>
@@ -98,14 +107,29 @@ function ProfileSummary({ profile }: { profile: StoredProfile }) {
     profile.pose ? POSE_LABELS[profile.pose] ?? profile.pose : null,
   ].filter((b): b is string => Boolean(b));
 
+  // photoPath заполняется и загруженным фото, и сгенерированной моделью
+  // (см. app/api/profile) — здесь показываем, на чём именно будет примерка,
+  // чтобы это не было чёрным ящиком.
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-hair-ink py-4">
+      <span className="relative h-14 w-11 shrink-0 overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
+        {profile.photoPath ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.photoPath} alt="Модель для примерки" className="h-full w-full object-cover" />
+        ) : null}
+      </span>
       {badges.map((badge) => (
-        <span key={badge} className="rounded-full border border-line bg-paper-soft px-3 py-1 text-xs text-ink-soft">
+        <span
+          key={badge}
+          className="border border-hair-ink px-2.5 py-1 font-grotesk text-[10px] uppercase tracking-[0.14em] text-ink-soft"
+        >
           {badge}
         </span>
       ))}
-      <Link href="/profile" className="text-xs font-medium text-accent transition-colors hover:text-ink">
+      <Link
+        href="/profile"
+        className="font-grotesk text-[10px] uppercase tracking-[0.2em] text-clay transition-colors hover:text-ink"
+      >
         Изменить анкету
       </Link>
     </div>
@@ -302,19 +326,52 @@ export function TryonForm({
     }
   }
 
+  // Без анкеты примерять не на что. Раньше здесь был один абзац, из которого
+  // невозможно было понять, что фото вообще необязательно — генерация модели
+  // была спрятана тумблером в самом низу анкеты. Теперь это явная развилка
+  // из двух равноправных путей.
   if (!profile) {
     return (
-      <div className="mt-10 animate-fade-in-up rounded-2xl border border-line bg-paper-soft px-5 py-8 text-center">
-        <p className="text-sm text-ink-soft">
-          Сначала заполни анкету — для примерки нужна модель. Можно загрузить своё фото
-          <span className="text-ink"> или сгенерировать модель по параметрам</span>, если фото нет.
+      <div className="mt-10 animate-fade-in-up">
+        <p className="max-w-lg font-grotesk text-sm leading-relaxed text-ink-soft">
+          Для примерки нужна модель — фигура, на которую нейросеть положит вещь.
+          Выбери, откуда её взять:
         </p>
-        <Link
-          href="/profile"
-          className="mt-4 inline-block rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white transition-all hover:scale-[1.02] hover:opacity-90 active:scale-95"
-        >
-          Заполнить анкету
-        </Link>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <Link
+            href="/profile"
+            className="group relative border border-hair-ink bg-canvas-2 p-6 transition-colors hover:border-ink"
+          >
+            <span className="font-display text-3xl text-clay">01</span>
+            <h3 className="mt-3 font-display text-xl uppercase tracking-tight text-ink">
+              Своё фото
+            </h3>
+            <p className="mt-2 font-grotesk text-[13px] leading-relaxed text-ink-soft">
+              Снимок в полный рост — результат будет максимально похож на тебя.
+            </p>
+            <span className="mt-5 block h-px w-full bg-hair-ink">
+              <span className="block h-px w-0 bg-clay transition-all duration-500 group-hover:w-full" />
+            </span>
+          </Link>
+
+          <Link
+            href="/profile?model=generated"
+            className="group relative border border-clay bg-clay/5 p-6 transition-colors hover:bg-clay/10"
+          >
+            <span className="font-display text-3xl text-clay">02</span>
+            <h3 className="mt-3 font-display text-xl uppercase tracking-tight text-ink">
+              Модель по анкете
+            </h3>
+            <p className="mt-2 font-grotesk text-[13px] leading-relaxed text-ink-soft">
+              Фото не нужно. Соберём женскую или мужскую модель по росту, весу,
+              телосложению, тону кожи и позе.
+            </p>
+            <span className="mt-5 block h-px w-full bg-hair-ink">
+              <span className="block h-px w-0 bg-clay transition-all duration-500 group-hover:w-full" />
+            </span>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -324,180 +381,184 @@ export function TryonForm({
       <ProfileSummary profile={profile} />
 
       {looks.length > 0 && (
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Готовые образы</p>
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-            {looks.map((look) => (
-              <ItemThumb
-                key={look.lookId}
-                item={look.topItem}
-                selected={topId === look.topItem.id && bottomId === look.bottomItem.id}
-                onClick={() => pickLook(look)}
-              />
-            ))}
-          </div>
-        </section>
+        <Carousel title="Готовые образы" count={looks.length}>
+          {looks.map((look) => (
+            <ItemThumb
+              key={look.lookId}
+              item={look.topItem}
+              selected={topId === look.topItem.id && bottomId === look.bottomItem.id}
+              onClick={() => pickLook(look)}
+            />
+          ))}
+        </Carousel>
       )}
 
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Верх</p>
-        <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-          {tops.map((item) => (
-            <ItemThumb key={item.id} item={item} selected={topId === item.id} onClick={() => toggleTop(item.id)} />
-          ))}
-        </div>
-      </section>
+      <Carousel title="Верх" count={tops.length}>
+        {tops.map((item) => (
+          <ItemThumb key={item.id} item={item} selected={topId === item.id} onClick={() => toggleTop(item.id)} />
+        ))}
+      </Carousel>
 
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Низ</p>
-        <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-          {bottoms.map((item) => (
+      <Carousel title="Низ" count={bottoms.length}>
+        {bottoms.map((item) => (
+          <ItemThumb
+            key={item.id}
+            item={item}
+            selected={bottomId === item.id}
+            onClick={() => toggleBottom(item.id)}
+          />
+        ))}
+      </Carousel>
+
+      {shoes.length > 0 && (
+        <Carousel title="Обувь" count={shoes.length}>
+          {shoes.map((item) => (
             <ItemThumb
               key={item.id}
               item={item}
-              selected={bottomId === item.id}
-              onClick={() => toggleBottom(item.id)}
+              selected={shoesId === item.id}
+              onClick={() => toggleShoes(item.id)}
             />
           ))}
-        </div>
-      </section>
-
-      {shoes.length > 0 && (
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Обувь</p>
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-            {shoes.map((item) => (
-              <ItemThumb
-                key={item.id}
-                item={item}
-                selected={shoesId === item.id}
-                onClick={() => toggleShoes(item.id)}
-              />
-            ))}
-          </div>
-        </section>
+        </Carousel>
       )}
 
       {bags.length > 0 && (
-        <section>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Сумки</p>
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-            {bags.map((item) => (
-              <ItemThumb key={item.id} item={item} selected={bagId === item.id} onClick={() => toggleBag(item.id)} />
-            ))}
-          </div>
-        </section>
+        <Carousel title="Сумки" count={bags.length}>
+          {bags.map((item) => (
+            <ItemThumb key={item.id} item={item} selected={bagId === item.id} onClick={() => toggleBag(item.id)} />
+          ))}
+        </Carousel>
       )}
 
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Дополните образ</p>
-        {!anchorId ? (
-          <p className="mt-3 text-sm text-ink-soft">Выбери вещь выше, чтобы увидеть, что к ней подходит.</p>
-        ) : visibleMatches.length === 0 ? (
-          <p className="mt-3 text-sm text-ink-soft">Пока нечего предложить к этому выбору.</p>
-        ) : (
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-            {visibleMatches.map((item) => (
-              <Link key={item.id} href={`/catalog/${item.id}`} className="group w-24 shrink-0 sm:w-28">
-                <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={catalogImageUrl(item.imagePath)}
-                    alt={item.description ?? item.category}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                </div>
-                <p className="mt-1.5 text-[10px] uppercase tracking-[0.12em] text-ink-soft">
-                  {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
-                </p>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+      {!anchorId || visibleMatches.length === 0 ? (
+        <section>
+          <p className="border-b border-hair-ink pb-2.5 font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+            Дополните образ
+          </p>
+          <p className="mt-4 font-grotesk text-sm text-ink-soft">
+            {!anchorId
+              ? "Выбери вещь выше, чтобы увидеть, что к ней подходит."
+              : "Пока нечего предложить к этому выбору."}
+          </p>
+        </section>
+      ) : (
+        <Carousel title="Дополните образ" count={visibleMatches.length}>
+          {visibleMatches.map((item) => (
+            <Link key={item.id} href={`/catalog/${item.id}`} className="group w-24 shrink-0 sm:w-28">
+              <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={catalogImageUrl(item.imagePath)}
+                  alt={item.description ?? item.category}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              <p className="mt-2 font-grotesk text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+                {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+              </p>
+            </Link>
+          ))}
+        </Carousel>
+      )}
 
-      {error && <p className="rounded-xl border border-accent/40 bg-accent-soft px-3.5 py-2.5 text-sm text-ink">{error}</p>}
+      {error && (
+        <p className="border-l-2 border-clay bg-clay/5 px-4 py-3 font-grotesk text-sm text-ink">{error}</p>
+      )}
 
       <button
         type="button"
         onClick={handleTryOn}
         disabled={selectedCount === 0 || status === "loading"}
-        className="w-full rounded-full bg-ink px-6 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
       >
+        <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
         {status === "loading"
           ? selectedCount > 1
-            ? "Примеряем… может занять до пары минут"
-            : "Примеряем… обычно 5–20 секунд"
-          : "Примерить"}
+            ? "Примеряем… до пары минут"
+            : "Примеряем… 5–20 секунд"
+          : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
       </button>
 
       {status === "loading" && (
-        <section className="border-t border-line pt-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Результат</p>
-          <div className="mt-3 grid grid-cols-2 gap-4">
-            <div className="aspect-[3/4] animate-pulse rounded-2xl border border-line bg-paper-soft" />
-            <div className="aspect-[3/4] animate-pulse rounded-2xl border border-line bg-paper-soft" />
+        <section className="border-t border-hair-ink pt-8">
+          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">Результат</p>
+          <div className="mt-4 grid max-w-2xl grid-cols-2 gap-4">
+            <div className="aspect-[3/4] animate-pulse bg-canvas-2 ring-1 ring-hair-ink" />
+            <div className="aspect-[3/4] animate-pulse bg-canvas-2 ring-1 ring-hair-ink" />
           </div>
         </section>
       )}
 
       {result && status === "idle" && (
-        <section className="animate-fade-in-up border-t border-line pt-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">Результат</p>
-          <div className="mt-3 grid grid-cols-2 gap-4">
+        <section className="animate-fade-in-up border-t border-hair-ink pt-8">
+          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">Результат</p>
+          <div className="mt-4 grid max-w-2xl grid-cols-2 gap-4">
             <div>
-              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
+              <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
                 <ResultImage src={profile.photoPath ?? ""} alt="До примерки" />
               </div>
-              <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.12em] text-ink-soft">До</p>
+              <p className="mt-2 text-center font-grotesk text-[10px] uppercase tracking-[0.24em] text-ink-soft">
+                До
+              </p>
             </div>
             <div>
-              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-paper-soft">
+              <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-clay">
                 <ResultImage src={result.resultImagePath} alt="После примерки" />
               </div>
-              <p className="mt-1.5 text-center text-[10px] uppercase tracking-[0.12em] text-ink-soft">После</p>
+              <p className="mt-2 text-center font-grotesk text-[10px] uppercase tracking-[0.24em] text-clay">
+                После
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => downloadImage(result.resultImagePath, "zhibek-tryon.jpg")}
-            className="mt-4 w-full rounded-full border border-ink/20 px-6 py-3 text-sm font-medium text-ink transition-colors hover:border-ink/40 sm:w-auto"
+            className="mt-6 border border-hair-ink px-8 py-3.5 font-grotesk text-[12px] uppercase tracking-[0.16em] text-ink transition-colors hover:border-ink"
           >
             Скачать
           </button>
         </section>
       )}
 
-      <section className="border-t border-line pt-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-soft">История примерок</p>
-
+      <section className="border-t border-hair-ink pt-8">
         {history === null ? (
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="aspect-[3/4] w-24 shrink-0 animate-pulse rounded-2xl border border-line bg-paper-soft sm:w-28" />
-            ))}
-          </div>
+          <>
+            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              История примерок
+            </p>
+            <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto pb-1">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="aspect-[3/4] w-24 shrink-0 animate-pulse bg-canvas-2 sm:w-28" />
+              ))}
+            </div>
+          </>
         ) : history.length === 0 ? (
-          <p className="mt-3 text-sm text-ink-soft">
-            История примерок пуста — заверши первую примерку, и она появится здесь.
-          </p>
+          <>
+            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              История примерок
+            </p>
+            <p className="mt-4 font-grotesk text-sm text-ink-soft">
+              Пусто — заверши первую примерку, и она появится здесь.
+            </p>
+          </>
         ) : (
-          <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+          <Carousel title="История примерок" count={history.length}>
             {history.map((entry) => (
               <button
                 key={entry.id}
                 type="button"
                 onClick={() => downloadImage(entry.resultImagePath, "zhibek-tryon.jpg")}
-                className="w-24 shrink-0 rounded-2xl border border-line text-left transition-colors hover:border-ink/30 sm:w-28"
+                className="group w-24 shrink-0 text-left sm:w-28"
                 title="Скачать"
               >
-                <div className="relative aspect-[3/4] overflow-hidden rounded-t-2xl bg-paper-soft">
+                <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink transition-all group-hover:ring-clay">
                   <ResultImage src={entry.resultImagePath} alt={`Примерка от ${formatDate(entry.createdAt)}`} />
                 </div>
-                <p className="mt-1.5 px-1 pb-1 text-[10px] text-ink-soft">{formatDate(entry.createdAt)}</p>
+                <p className="mt-2 font-grotesk text-[10px] text-ink-soft">{formatDate(entry.createdAt)}</p>
               </button>
             ))}
-          </div>
+          </Carousel>
         )}
       </section>
     </div>

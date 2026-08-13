@@ -1,56 +1,68 @@
 @import "tailwindcss";
 
-/* Светлый высококонтрастный минимал (см. план редизайна). "bone/gold" —
-   старые молочные имена оставлены как алиасы ниже, чтобы весь существующий
-   код (bg-bone, border-line, text-accent...) не пришлось переписывать —
-   меняются только сами значения. */
-:root {
-  --paper: #ffffff;
-  --paper-soft: #f4f4f2;
-  --ink: #0a0a0a;
-  --ink-soft: #6b6b6b;
-  --line: #e6e6e3;
-  --accent: #1f2fff;
-  --accent-soft: #e8e9ff;
-  --accent-contrast: #ffffff;
-}
+/* --- Палитра ------------------------------------------------------------
+   Натуральные красители по тёплой бумаге: слоновая кость и песок как холст,
+   тёплый эспрессо вместо чёрного, терракота (марена) основным акцентом,
+   шалфей и шафран — вторыми. Так сайт про одежду читается тканью, а не
+   интерфейсом; чистый чёрно-белый минимал сюда не ложился.
 
-/* --- Editorial: арт-дирекшн главной страницы -----------------------------
-   Отдельный «журнальный» слой поверх светлой темы: тёплый near-black холст,
-   костяной шёлк текстом и один резкий акцент — марена (краситель шёлка,
-   отсюда и название бренда: жібек = шёлк). Главная живёт в этих токенах,
-   остальные разделы — в прежних paper/ink, поэтому /catalog, /tryon и
-   /profile редизайн не задевает. */
+   Токены общие для всего сайта: старые имена (bone/ink/accent/line) оставлены
+   алиасами, поэтому неперерисованные разделы — примерочная, корзина, карточка
+   товара — подхватывают новую гамму сами, без правки классов. */
 :root {
-  --noir: #0c0b09;
-  --noir-raised: #16140f;
-  --silk: #f0eae0;
-  --silk-dim: #9d968a;
-  --madder: #e23d22;
-  --hair: rgba(240, 234, 224, 0.16);
-  --hair-ink: rgba(12, 11, 9, 0.16);
+  --canvas: #f7f1e7;
+  --canvas-2: #ede3d4;
+  --espresso: #2a211c;
+  --espresso-2: #3a2e26;
+  --clay: #c4552f;
+  --clay-soft: #f2e0d4;
+  --sage: #7c8a6b;
+  --saffron: #e3a44a;
+
+  --ink: #2a211c;
+  --ink-soft: #7a6a5e;
+  /* приглушённый текст на тёмных плашках — ink-soft там нечитаем */
+  --canvas-dim: #b3a291;
+  --line: #ddd0bc;
+  --hair: rgba(247, 241, 231, 0.18);
+  --hair-ink: rgba(42, 33, 28, 0.16);
+
+  /* алиасы прежней светлой темы */
+  --paper: var(--canvas);
+  --paper-soft: var(--canvas-2);
+  --accent: var(--clay);
+  --accent-soft: var(--clay-soft);
+  --accent-contrast: #fdfaf5;
 }
 
 @theme inline {
-  --color-bone: var(--paper);
-  --color-bone-soft: var(--paper-soft);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-gold: var(--accent);
-  --color-line: var(--line);
-  --font-display: var(--font-display-src);
-  --font-sans: var(--font-onest);
-
-  --color-noir: var(--noir);
-  --color-noir-raised: var(--noir-raised);
-  --color-silk: var(--silk);
-  --color-silk-dim: var(--silk-dim);
-  --color-madder: var(--madder);
+  --color-canvas: var(--canvas);
+  --color-canvas-2: var(--canvas-2);
+  --color-canvas-dim: var(--canvas-dim);
+  --color-espresso: var(--espresso);
+  --color-espresso-2: var(--espresso-2);
+  --color-clay: var(--clay);
+  --color-clay-soft: var(--clay-soft);
+  --color-sage: var(--sage);
+  --color-saffron: var(--saffron);
   --color-hair: var(--hair);
   --color-hair-ink: var(--hair-ink);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-bone: var(--paper);
+  --color-bone-soft: var(--paper-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--saffron);
+
+  /* Prata — контрастная антиква, работает только на крупном кегле и только в
+     400 (другого начертания у неё нет: font-semibold даст синтетический жир).
+     Golos Text — кириллический гротеск под весь остальной текст. */
+  --font-display: var(--font-prata);
   --font-editorial: var(--font-prata);
+  --font-sans: var(--font-golos);
   --font-grotesk: var(--font-golos);
 }
 
@@ -61,13 +73,13 @@
 }
 
 body {
-  background-color: var(--paper);
+  background-color: var(--canvas);
   color: var(--ink);
   font-family: var(--font-sans);
 }
 
 ::selection {
-  background-color: var(--accent);
+  background-color: var(--clay);
   color: var(--accent-contrast);
 }
 
@@ -83,11 +95,93 @@ html {
   scroll-behavior: smooth;
 }
 
-/* --- Анимации ------------------------------------------------------------
-   Лёгкие, ненавязчивые появления/переключения. Определены обычным CSS (не
-   через Tailwind-конфиг), классы применяются напрямую: animate-fade-in-up на
-   секциях, animate-fade-in-scale на переключаемых фото галереи, stagger-*
-   для покарточной задержки в сетке каталога. */
+/* --- Фактуры ------------------------------------------------------------- */
+
+/* Зерно поверх плашек — снимает "цифровую" плоскость заливки. Turbulence
+   зашит data-URI, чтобы не тянуть внешний файл. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E");
+}
+/* На тёмных плашках multiply съедает текстуру — там осветляем. */
+.grain-dark::after {
+  mix-blend-mode: overlay;
+  opacity: 0.42;
+}
+
+/* Вертикальные волоски — намёк на нити основы в ткани. */
+.warp-lines {
+  background-image: linear-gradient(to right, var(--hair-ink) 1px, transparent 1px);
+  background-size: calc(100% / 6) 100%;
+}
+.warp-lines-dark {
+  background-image: linear-gradient(to right, var(--hair) 1px, transparent 1px);
+}
+
+/* --- Типографические приёмы ---------------------------------------------- */
+
+/* Контурный набор: выключенная заливка + обводка. Держит плотность полосы,
+   не перегружая её массой — на гигантских цифрах и одной строке заголовка. */
+.stroke-ink {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--espresso);
+  transition: -webkit-text-stroke-color 0.45s ease;
+}
+.stroke-canvas {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--canvas);
+}
+.stroke-clay {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--clay);
+}
+.group:hover .stroke-ink {
+  -webkit-text-stroke-color: var(--clay);
+}
+
+/* Микро-рубрика над заголовками секций. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+.tag::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: var(--clay);
+}
+
+/* Прежняя надрубрика — остаётся для неперерисованных разделов. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--clay);
+}
+.eyebrow::before {
+  content: "";
+  width: 1.5rem;
+  height: 2px;
+  background: var(--clay);
+}
+
+/* --- Анимации ------------------------------------------------------------ */
+
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -136,71 +230,8 @@ html {
   animation-delay: calc(var(--stagger, 0) * 45ms);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up,
-  .animate-fade-in-scale,
-  .animate-fade-in,
-  .stagger-item {
-    animation: none;
-  }
-}
-
-/* --- Editorial: приёмы главной ------------------------------------------- */
-
-/* Зерно поверх тёмных плашек — снимает "цифровую" плоскость заливки.
-   Turbulence зашит data-URI, чтобы не тянуть внешний файл. */
-.grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.42;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
-}
-
-/* Вертикальные волоски — намёк на нити основы в ткани. */
-.warp-lines {
-  background-image: linear-gradient(to right, var(--hair) 1px, transparent 1px);
-  background-size: calc(100% / 6) 100%;
-}
-
-/* Контурная типографика: выключенная заливка + обводка. Используется на
-   гигантских цифрах и одной строке заголовка — держит плотность полосы,
-   не перегружая её массой. */
-.stroke-silk {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--silk);
-}
-.stroke-noir {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--noir);
-  transition: -webkit-text-stroke-color 0.45s ease;
-}
-.group:hover .stroke-noir {
-  -webkit-text-stroke-color: var(--madder);
-}
-
-/* Микро-рубрика на тёмном/светлом — editorial-версия .eyebrow. */
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-}
-.tag::before {
-  content: "";
-  width: 1.75rem;
-  height: 1px;
-  background: var(--madder);
-}
-
-/* Бегущая строка внизу первого экрана. Контент дублируется в разметке,
-   поэтому сдвиг ровно на половину трека даёт бесшовный цикл. */
+/* Бегущая строка. Контент дублируется в разметке, поэтому сдвиг ровно на
+   половину трека даёт бесшовный цикл. */
 @keyframes marquee {
   from {
     transform: translateX(0);
@@ -271,28 +302,14 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in-scale,
+  .animate-fade-in,
+  .stagger-item,
   .marquee-track,
   .reveal-line,
   .reveal-soft,
   .on-view {
     animation: none;
   }
-}
-
-/* Надрубрика над заголовками секций — единая замена бывшей "золотой черты". */
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-.eyebrow::before {
-  content: "";
-  width: 1.5rem;
-  height: 2px;
-  background: var(--accent);
 }
