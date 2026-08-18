@@ -512,7 +512,7 @@ export function TryonForm({
           </div>
           <button
             type="button"
-            onClick={() => downloadImage(result.resultImagePath, "zhibek-tryon.jpg")}
+            onClick={() => downloadImage(result.resultImagePath, "silk-tryon.jpg")}
             className="mt-6 border border-hair-ink px-8 py-3.5 font-grotesk text-[12px] uppercase tracking-[0.16em] text-ink transition-colors hover:border-ink"
           >
             Скачать
@@ -547,7 +547,7 @@ export function TryonForm({
               <button
                 key={entry.id}
                 type="button"
-                onClick={() => downloadImage(entry.resultImagePath, "zhibek-tryon.jpg")}
+                onClick={() => downloadImage(entry.resultImagePath, "silk-tryon.jpg")}
                 className="group w-24 shrink-0 text-left sm:w-28"
                 title="Скачать"
               >

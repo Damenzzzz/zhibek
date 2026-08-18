@@ -22,8 +22,8 @@ const golos = Golos_Text({
 });
 
 export const metadata: Metadata = {
-  title: "ZHIBEK — примерка образов",
-  description: "Каталог образов и виртуальная примерка одежды ZHIBEK",
+  title: "SILK — примерка образов",
+  description: "Каталог образов и виртуальная примерка одежды SILK",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

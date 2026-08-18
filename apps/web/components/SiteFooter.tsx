@@ -18,7 +18,7 @@ export function SiteFooter() {
       <div className="relative z-10 mx-auto max-w-[88rem] px-5 pt-16 sm:px-8 lg:px-14">
         <div className="grid gap-10 border-b border-hair pb-14 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="max-w-sm">
-            <span className="tag text-canvas-dim">жібек · шёлк</span>
+            <span className="tag text-canvas-dim">silk · шёлк</span>
             <p className="mt-5 font-grotesk text-sm leading-relaxed text-canvas-dim">
               Каталог образов и виртуальная примерочная. Комплекты собираются из готовых
               съёмок, примеряются на твою фигуру и остаются в истории — без походов
@@ -53,7 +53,7 @@ export function SiteFooter() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 py-6 font-grotesk text-[10px] uppercase tracking-[0.28em] text-canvas-dim">
-          <span>© {new Date().getFullYear()} ZHIBEK</span>
+          <span>© {new Date().getFullYear()} SILK</span>
           <span>Shymkent</span>
         </div>
       </div>
@@ -62,7 +62,7 @@ export function SiteFooter() {
           разворота. aria-hidden: это графика, а не читаемый текст. */}
       <div aria-hidden className="relative z-10 select-none overflow-hidden">
         <span className="stroke-canvas block translate-y-[0.18em] whitespace-nowrap text-center font-editorial text-[19vw] uppercase leading-[0.75] tracking-[0.02em] opacity-40">
-          Zhibek
+          Silk
         </span>
       </div>
     </footer>

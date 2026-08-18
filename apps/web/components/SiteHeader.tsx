@@ -48,7 +48,7 @@ export function SiteHeader() {
         <div className="mx-auto flex max-w-[88rem] items-center justify-between px-5 py-4 sm:px-8 lg:px-14">
           <Link href="/" className="group flex items-baseline gap-2">
             <span className="font-display text-lg uppercase tracking-[0.34em] text-ink transition-colors group-hover:text-clay">
-              Zhibek
+              Silk
             </span>
           </Link>
 
