@@ -8,12 +8,11 @@ import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
 import { Carousel } from "@/components/tryon/Carousel";
 
-// Клиентский предохранитель поверх серверного poll-таймаута FASHN (3 минуты,
-// см. lib/fashn.ts) — если сервер вообще не ответит, не виснем бесконечно.
-// Обувь/сумка добавляют ещё до 2 доп. последовательных вызовов FASHN
-// (tryon-max, см. lib/fashn.ts tryOnAccessory) поверх примерки одежды,
-// поэтому таймаут поднят с прежних 4 минут.
-const CLIENT_TIMEOUT_MS = 6 * 60 * 1000;
+// Клиентский предохранитель: если сервер вообще не ответит, не виснем
+// бесконечно. Примерка теперь — один вызов Gemini (весь образ за проход,
+// ~20–40 сек, см. lib/gemini.ts), но оставляем большой запас на очередь/
+// холодный старт serverless-функции.
+const CLIENT_TIMEOUT_MS = 3 * 60 * 1000;
 
 interface Item {
   id: string;
@@ -317,7 +316,7 @@ export function TryonForm({
     } catch (err) {
       setError(
         err instanceof DOMException && err.name === "AbortError"
-          ? "Не дождались ответа от FASHN — попробуй ещё раз"
+          ? "Не дождались ответа от нейросети — попробуй ещё раз"
           : "Не удалось связаться с сервером"
       );
       setStatus("idle");

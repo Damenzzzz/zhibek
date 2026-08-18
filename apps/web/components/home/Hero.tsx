@@ -8,11 +8,11 @@ const TICKER = [
   "виртуальная примерочная",
   "верх · низ · образ целиком",
   "без похода в шоурум",
-  "fashn ai",
+  "примерка на нейросети",
 ];
 
 const STATS = [
-  { value: "5–20", unit: "сек", note: "одна примерка" },
+  { value: "1", unit: "проход", note: "весь образ целиком" },
   { value: "01", unit: "анкета", note: "и весь каталог твой" },
   { value: "00", unit: "шоурумов", note: "ехать никуда не надо" },
 ];
@@ -62,8 +62,8 @@ export function Hero() {
 
           <div className="reveal-soft mt-8 max-w-md" style={{ "--d": 520 } as React.CSSProperties}>
             <p className="font-grotesk text-[15px] leading-relaxed text-ink-soft sm:text-base">
-              Каталог собран из живых съёмок, а не с фотостоков. Нейросеть FASHN кладёт вещь
-              на твою фигуру — верх, низ или образ целиком за одну примерку.
+              Каталог собран из живых съёмок, а не с фотостоков. Нейросеть кладёт
+              на твою фигуру верх, низ или образ целиком за одну примерку.
             </p>
 
             <div className="mt-8 flex flex-wrap items-stretch gap-3">

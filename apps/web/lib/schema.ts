@@ -44,8 +44,8 @@ export const tryonHistory = sqliteTable("tryon_history", {
     .references(() => users.id),
   topItemId: text("top_item_id").references(() => catalogItems.id),
   bottomItemId: text("bottom_item_id").references(() => catalogItems.id),
-  // Обувь/сумка накладываются отдельной моделью FASHN (tryon-max, см.
-  // lib/fashn.ts tryOnAccessory) поверх результата примерки одежды выше.
+  // Обувь/сумка входят в тот же единый вызов Gemini, что и одежда
+  // (см. lib/gemini.ts tryOnWithGemini) — весь образ надевается за один проход.
   shoesItemId: text("shoes_item_id").references(() => catalogItems.id),
   bagItemId: text("bag_item_id").references(() => catalogItems.id),
   resultImagePath: text("result_image_path"),
@@ -54,7 +54,8 @@ export const tryonHistory = sqliteTable("tryon_history", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-// Учёт расхода кредитов FASHN API (см. lib/fashn.ts).
+// Учёт расхода: примерка на Gemini (endpoint "gemini-tryon", см. lib/gemini.ts)
+// и генерация модели по анкете на FASHN (см. lib/fashn.ts).
 export const creditUsage = sqliteTable("credit_usage", {
   id: text("id")
     .primaryKey()

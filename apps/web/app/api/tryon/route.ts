@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItems, tryonHistory, users } from "@/lib/schema";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
-import { tryOnGarment, tryOnFullOutfit, tryOnAccessory, FashnApiError } from "@/lib/fashn";
+import { tryOnWithGemini, GeminiApiError, type TryOnGarments } from "@/lib/gemini";
+import { saveUpload } from "@/lib/storage";
 
 const bodySchema = z
   .object({
@@ -75,32 +76,25 @@ export async function POST(request: NextRequest) {
   // прогонять через origin не нужно.
   const modelImageUrl = user.photoPath.startsWith("http") ? user.photoPath : `${origin}${user.photoPath}`;
 
+  // Все выбранные товары накладываются за ОДИН вызов Gemini (см. lib/gemini.ts).
+  // Верх-слот может содержать как top, так и outerwear (жилет/жакет) — на фронте
+  // они в одной ленте «Верх»; раскладываем по реальной категории товара, чтобы
+  // промпт точнее описал вещь.
+  const garmentUrl = (imagePath: string) => `${origin}${catalogImageUrl(imagePath)}`;
+  const garments: TryOnGarments = {};
+  if (topItem) {
+    if (topItem.category === "outerwear") garments.outerwear = garmentUrl(topItem.imagePath);
+    else garments.top = garmentUrl(topItem.imagePath);
+  }
+  if (bottomItem) garments.bottom = garmentUrl(bottomItem.imagePath);
+  if (shoesItem) garments.shoes = garmentUrl(shoesItem.imagePath);
+  if (bagItem) garments.bag = garmentUrl(bagItem.imagePath);
+
   try {
-    // Последовательная цепочка: одежда (дешёвый tryon-v1.6) → обувь → сумка
-    // (обе — tryon-max, единственная модель FASHN с поддержкой аксессуаров).
-    // Каждый следующий шаг накладывается поверх результата предыдущего.
-    let currentImage = modelImageUrl;
-
-    if (topItem && bottomItem) {
-      currentImage = await tryOnFullOutfit(
-        currentImage,
-        `${origin}${catalogImageUrl(topItem.imagePath)}`,
-        `${origin}${catalogImageUrl(bottomItem.imagePath)}`
-      );
-    } else if (topItem) {
-      currentImage = await tryOnGarment(currentImage, `${origin}${catalogImageUrl(topItem.imagePath)}`, "tops");
-    } else if (bottomItem) {
-      currentImage = await tryOnGarment(currentImage, `${origin}${catalogImageUrl(bottomItem.imagePath)}`, "bottoms");
-    }
-
-    if (shoesItem) {
-      currentImage = await tryOnAccessory(currentImage, `${origin}${catalogImageUrl(shoesItem.imagePath)}`);
-    }
-    if (bagItem) {
-      currentImage = await tryOnAccessory(currentImage, `${origin}${catalogImageUrl(bagItem.imagePath)}`);
-    }
-
-    const resultUrl = currentImage;
+    const resultBytes = await tryOnWithGemini(modelImageUrl, garments);
+    // Gemini отдаёт байты картинки — сохраняем их так же, как загруженные фото:
+    // локально в public/uploads, на Vercel — в Blob (см. lib/storage.ts).
+    const resultUrl = await saveUpload(resultBytes, "png", "image/png");
 
     const [record] = await db
       .insert(tryonHistory)
@@ -116,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ result: record, modelImageUrl });
   } catch (err) {
-    if (err instanceof FashnApiError) {
+    if (err instanceof GeminiApiError) {
       return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });
     }
     throw err;
