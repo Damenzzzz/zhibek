@@ -54,7 +54,7 @@ export function SiteFooter() {
 
         <div className="flex flex-wrap items-center justify-between gap-4 py-6 font-grotesk text-[10px] uppercase tracking-[0.28em] text-canvas-dim">
           <span>© {new Date().getFullYear()} ZHIBEK</span>
-          <span>Almaty</span>
+          <span>Shymkent</span>
         </div>
       </div>
 
