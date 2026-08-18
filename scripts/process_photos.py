@@ -1,16 +1,19 @@
 """
 Обрабатывает исходники из data/raw/ через Gemini API и пишет предметы одежды
-в каталог. Поддерживает два формата входа:
+в каталог. Поддерживает три формата входа:
 
-1. Коллаж (файл прямо в data/raw/): слева — модель в полном образе, справа —
+1. Папка-образ (ОСНОВНОЙ формат нового каталога): data/raw/<N>/ — один готовый
+   образ (комплект). Внутри <N>.jpg/<N>.png — фото модели в полном образе
+   (обложка), а <N>-1.jpg, <N>-2.jpg, ... — отдельные изолированные фото
+   каждого товара образа. Каждое item-фото идёт в каталог целиком (кроп не
+   нужен), все товары получают общий look_id = имя папки (см.
+   process_look_folder). Обложка кладётся в data/catalog/looks/<N>.jpg.
+2. Коллаж (файл прямо в data/raw/): слева — модель в полном образе, справа —
    отдельные вырезанные фото товаров с номерами артикулов рядом. Каждый
    найденный предмет вырезается по рамке (bounding box) в свой файл.
-2. Папка с ракурсами одного товара (data/raw/<имя>/*): уже изолированное
-   фото товара (без модели, без наложенного текста) в нескольких ракурсах —
-   например data/raw/1/*.jpg с футболкой спереди и сзади. Обрезка не нужна,
-   в каталог идёт весь файл целиком; в качестве обложки берётся самый
-   "тяжёлый" по размеру файл в папке (эмпирически — самый выигрышный ракурс
-   среди фото маркетплейсов).
+3. Папка с ракурсами одного товара (data/raw/<имя>/* без обложки-комплекта):
+   уже изолированное фото товара в нескольких ракурсах. Обрезка не нужна,
+   в каталог идёт весь файл целиком; обложка — самый "тяжёлый" файл в папке.
 
 Запуск:
     python scripts/process_photos.py
@@ -155,6 +158,46 @@ class SingleItem(BaseModel):
     is_full_outfit: bool
     category: Category
     dominant_color: str
+    short_description: str
+
+
+# --- Формат «папка-образ» (основной для нового каталога) -------------------
+# data/raw/<N>/ — один готовый образ (комплект). Внутри:
+#   <N>.jpg / <N>.png — фото модели в полном образе (обложка образа);
+#   <N>-1.jpg, <N>-2.jpg, ... — отдельные изолированные фото каждого товара
+#     этого образа (на однотонном фоне, без модели и без наложенного текста).
+# Каждое item-фото идёт в каталог целиком (кроп не нужен), все товары папки
+# получают общий look_id = имя папки — это и есть «часть образа» / «дополните
+# образ» на фронте (см. apps/web/lib/matching.ts).
+
+LOOK_ITEMS_PROMPT = """\
+Тебе показаны отдельные фотографии товаров, которые вместе составляют ОДИН
+модный образ (комплект одежды и аксессуаров). Каждое фото — это один
+изолированный товар на однотонном фоне (без модели).
+
+Фотографии переданы по порядку. Для КАЖДОЙ фотографии верни ровно один объект
+с полями:
+- index: порядковый номер фото, начиная с 1 (в том же порядке, в каком фото
+  переданы). Не пропускай и не меняй порядок.
+- category: одна из top, bottom, outerwear, shoes, bag, accessory.
+  Подсказки: рубашка/блузка/футболка/топ/джемпер = top; брюки/юбка/шорты =
+  bottom; жилет/жакет/пиджак/пальто/тренч/куртка = outerwear; туфли/кроссовки/
+  сапоги/босоножки = shoes; сумка/клатч/рюкзак = bag; ремень/очки/украшения/
+  шляпа/шарф = accessory.
+- dominant_color: доминирующий цвет товара на русском (например "тёмно-синий").
+- title: короткое название товара на русском из 2-4 слов (например
+  "тёмно-синий жилет", "кремовая шёлковая блузка").
+- short_description: одно предложение-описание товара на русском.
+
+Верни JSON-массив ровно из такого числа объектов, сколько передано фотографий.
+"""
+
+
+class ClassifiedItem(BaseModel):
+    index: int
+    category: Category
+    dominant_color: str
+    title: str
     short_description: str
 
 
@@ -492,6 +535,167 @@ def process_single_folder(
     return {detected.category: 1}
 
 
+_MIME_BY_SUFFIX = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
+
+
+def split_look_folder(folder_path: Path) -> tuple[Optional[Path], list[Path]]:
+    """Разбивает папку-образ на (обложка, [товары]). Обложка — файл, чьё имя
+    совпадает с именем папки (<N>.jpg/<N>.png); товары — все остальные
+    изображения, отсортированные по числовому суффиксу <N>-<k>."""
+    images = [p for p in folder_path.iterdir() if p.suffix.lower() in IMAGE_EXTENSIONS]
+    cover = next((p for p in images if p.stem == folder_path.name), None)
+    items = [p for p in images if p is not cover]
+
+    def sort_key(p: Path) -> tuple:
+        # "<N>-<k>" -> сортируем по k, прочее — по имени в конец.
+        suffix = p.stem.split("-", 1)[1] if "-" in p.stem else ""
+        return (0, int(suffix)) if suffix.isdigit() else (1, p.stem)
+
+    items.sort(key=sort_key)
+    return cover, items
+
+
+def is_look_folder(folder_path: Path) -> bool:
+    """Папка-образ нового формата: есть обложка <N>.* и хотя бы два отдельных
+    фото товаров <N>-<k>.* (комплект из нескольких вещей)."""
+    cover, items = split_look_folder(folder_path)
+    return cover is not None and len(items) >= 2
+
+
+def classify_look_items(
+    client: genai.Client, model: str, item_paths: list[Path]
+) -> list[ClassifiedItem]:
+    """Классифицирует все товары образа за один вызов Gemini (по фото в
+    порядке item_paths). При несовпадении числа/индексов ответа — доклассифицирует
+    недостающие товары поштучно, чтобы не потерять ни одну вещь."""
+    parts = [
+        types.Part.from_bytes(data=p.read_bytes(), mime_type=_MIME_BY_SUFFIX[p.suffix.lower()])
+        for p in item_paths
+    ]
+
+    _throttle_gemini()
+    response = client.models.generate_content(
+        model=model,
+        contents=[LOOK_ITEMS_PROMPT, *parts],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=list[ClassifiedItem],
+        ),
+    )
+    if response.parsed is not None:
+        parsed = list(response.parsed)
+    else:
+        parsed = [ClassifiedItem.model_validate(x) for x in json.loads(response.text)]
+
+    by_index = {c.index: c for c in parsed}
+    result: list[ClassifiedItem] = []
+    for i, path in enumerate(item_paths, start=1):
+        item = by_index.get(i)
+        if item is None:
+            item = classify_single_item(client, model, path, i)
+        result.append(item)
+    return result
+
+
+def classify_single_item(
+    client: genai.Client, model: str, item_path: Path, index: int
+) -> ClassifiedItem:
+    """Резервная поштучная классификация одного товара (если пакетный вызов
+    не вернул для него объект)."""
+    _throttle_gemini()
+    response = client.models.generate_content(
+        model=model,
+        contents=[
+            LOOK_ITEMS_PROMPT,
+            types.Part.from_bytes(
+                data=item_path.read_bytes(), mime_type=_MIME_BY_SUFFIX[item_path.suffix.lower()]
+            ),
+        ],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=list[ClassifiedItem],
+        ),
+    )
+    if response.parsed:
+        item = list(response.parsed)[0]
+    else:
+        item = ClassifiedItem.model_validate(json.loads(response.text)[0])
+    item.index = index
+    return item
+
+
+def process_look_folder(
+    conn: sqlite3.Connection,
+    client: genai.Client,
+    model: str,
+    folder_path: Path,
+) -> dict[str, int]:
+    """Обрабатывает папку-образ: каждое item-фото идёт в каталог целиком,
+    все товары получают общий look_id = имя папки. Обложка образа копируется
+    в data/catalog/looks/<N>.jpg (для показа готового образа на фронте)."""
+    cover, items = split_look_folder(folder_path)
+    if not items:
+        print(f"  ! в папке {folder_path.name} нет фото товаров — пропущена")
+        return {}
+
+    look_id = folder_path.name
+    source_photo = folder_source_key(folder_path)
+    classified = classify_look_items(client, model, items)
+
+    # Обложку образа (модель в полном образе) сохраняем отдельно — фронт может
+    # показать её как превью готового комплекта. Не входит в items, синком в БД
+    # не участвует, поэтому просто кладём файл рядом.
+    if cover is not None:
+        looks_dir = CATALOG_DIR / "looks"
+        looks_dir.mkdir(parents=True, exist_ok=True)
+        Image.open(cover).convert("RGB").save(looks_dir / f"{look_id}.jpg", "JPEG", quality=90)
+
+    category_counts: dict[str, int] = {}
+    cursor = conn.cursor()
+    for item_path, meta in zip(items, classified):
+        item_id = sanitize_id(item_path.stem)
+        category_dir = CATALOG_DIR / meta.category
+        category_dir.mkdir(parents=True, exist_ok=True)
+        out_path = category_dir / f"{item_id}.jpg"
+        Image.open(item_path).convert("RGB").save(out_path, "JPEG", quality=90)
+
+        relative_path = out_path.relative_to(ROOT).as_posix()
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO items
+                (id, sku, category, color, description, image_path, images, look_id, source_photo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                item_id,
+                None,
+                meta.category,
+                meta.dominant_color,
+                meta.title or meta.short_description,
+                relative_path,
+                json.dumps([relative_path], ensure_ascii=False),
+                look_id,
+                source_photo,
+            ),
+        )
+        category_counts[meta.category] = category_counts.get(meta.category, 0) + 1
+
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO processed_photos (source_photo, processed_at, items_found)
+        VALUES (?, ?, ?)
+        """,
+        (source_photo, datetime.now(timezone.utc).isoformat(), len(items)),
+    )
+    conn.commit()
+    return category_counts
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default=DEFAULT_MODEL, help="Gemini модель (по умолчанию %(default)s)")
@@ -585,13 +789,18 @@ def main() -> None:
         if args.force:
             clear_previous_results(conn, folder_source_key(folder_path))
         try:
-            counts = process_single_folder(
-                conn,
-                client,
-                args.model,
-                folder_path,
-                retouch_model=args.retouch_model if args.retouch else None,
-            )
+            if is_look_folder(folder_path):
+                # Основной формат нового каталога: папка = готовый образ из
+                # нескольких отдельных товаров (см. process_look_folder).
+                counts = process_look_folder(conn, client, args.model, folder_path)
+            else:
+                counts = process_single_folder(
+                    conn,
+                    client,
+                    args.model,
+                    folder_path,
+                    retouch_model=args.retouch_model if args.retouch else None,
+                )
         except Exception as exc:  # noqa: BLE001 - продолжаем со следующей папкой
             print(f"  ! ошибка при обработке папки {folder_path.name}: {exc}", file=sys.stderr)
             continue

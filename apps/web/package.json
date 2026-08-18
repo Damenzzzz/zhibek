@@ -14,6 +14,7 @@
     "sync:catalog": "tsx scripts/sync-catalog.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.17.1",
     "@libsql/client": "^0.17.4",
     "@vercel/blob": "^2.7.0",
     "better-sqlite3": "^13.0.3",

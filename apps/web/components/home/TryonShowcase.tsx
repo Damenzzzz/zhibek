@@ -44,7 +44,7 @@ export function TryonShowcase() {
         <div className="on-view order-1 mx-auto w-full max-w-sm lg:order-2 lg:max-w-none">
           <BeforeAfter before="/hero-model.png" after="/tryon-demo.png" />
           <p className="mt-3 text-center font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-            fashn · одна примерка
+            gemini · одна примерка
           </p>
         </div>
       </div>

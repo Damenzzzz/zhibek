@@ -44,7 +44,8 @@ export default function FittingRoomPage() {
 
   function goToTryon() {
     // Переносим в примерку по одному предмету каждой примеряемой категории —
-    // верх/низ/обувь/сумку (аксессуары FASHN не примеряет, их пропускаем).
+    // верх/низ/обувь/сумку (у примерки нет слота под мелкие аксессуары вроде
+    // ремня/берета — категорию accessory пропускаем).
     const top = items.find((item) => item.category === "top" || item.category === "outerwear");
     const bottom = items.find((item) => item.category === "bottom");
     const shoes = items.find((item) => item.category === "shoes");

@@ -46,8 +46,8 @@ export function SiteFooter() {
               О проекте
             </p>
             <p className="mt-5 font-grotesk text-sm leading-relaxed text-canvas-dim">
-              Примерка работает на FASHN API, каталог собирается из фотосессий через
-              Gemini. Учебный MVP.
+              Примерка работает на нейросети Gemini, каталог собирается из
+              фотосессий тоже через Gemini. Учебный MVP.
             </p>
           </div>
         </div>
