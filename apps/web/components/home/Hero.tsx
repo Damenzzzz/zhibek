@@ -8,7 +8,7 @@ const TICKER = [
   "виртуальная примерочная",
   "верх · низ · образ целиком",
   "без похода в шоурум",
-  "примерка на нейросети",
+  "примерка",
 ];
 
 const STATS = [
@@ -27,14 +27,14 @@ export function Hero() {
       <div className="pointer-events-none absolute left-6 top-1/2 z-10 hidden -translate-y-1/2 xl:block">
         <span className="flex items-center gap-4 font-grotesk text-[10px] uppercase tracking-[0.4em] text-ink-soft [writing-mode:vertical-rl]">
           <span className="h-1.5 w-1.5 rounded-full bg-clay" />
-          Almaty · выпуск 01
+          Shymkent · выпуск 01
         </span>
       </div>
 
       <div className="relative z-10 mx-auto grid w-full max-w-[88rem] flex-1 items-center gap-12 px-5 pb-24 pt-32 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-14 lg:pb-20">
         <div>
           <span className="tag reveal-soft text-ink-soft" style={{ "--d": 80 } as React.CSSProperties}>
-            примерка на нейросети
+            примерка
           </span>
 
           {/* Каждая строка — своя маска overflow-hidden, чтобы текст выезжал
