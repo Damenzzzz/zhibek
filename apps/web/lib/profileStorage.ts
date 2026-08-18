@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 
 // Локальный "профиль" без авторизации — MVP хранит текущего пользователя
 // в localStorage браузера (см. app/profile/page.tsx и app/tryon/page.tsx).
-export const PROFILE_STORAGE_KEY = "zhibek:profile";
+export const PROFILE_STORAGE_KEY = "silk:profile";
 
 export interface StoredProfile {
   id: string;

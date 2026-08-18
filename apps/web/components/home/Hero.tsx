@@ -4,7 +4,7 @@ import { SkeletonImage } from "@/components/SkeletonImage";
 // Строки бегущей ленты внизу экрана. Дублируются в разметке ×2 — так
 // @keyframes marquee (сдвиг на -50%) замыкается без стыка.
 const TICKER = [
-  "жібек — шёлк",
+  "silk — шёлк",
   "виртуальная примерочная",
   "верх · низ · образ целиком",
   "без похода в шоурум",
@@ -115,7 +115,7 @@ export function Hero() {
           <div className="relative aspect-[3/4] w-full overflow-hidden bg-canvas-2">
             <SkeletonImage
               src="/hero-model.png"
-              alt="Модель для примерки ZHIBEK"
+              alt="Модель для примерки SILK"
               priority
               sizes="(max-width: 1024px) 80vw, 40vw"
               placeholderClassName="bg-canvas-2"

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# ZHIBEK
+# SILK
 
 Сайт примерки одежды. Каталог образов (фото коллекций), виртуальная примерка
 через Gemini API (модель `gemini-3-pro-image-preview`, "Nano Banana Pro"),

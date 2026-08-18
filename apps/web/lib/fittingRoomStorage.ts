@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-export const FITTING_ROOM_KEY = "zhibek:fitting-room";
+export const FITTING_ROOM_KEY = "silk:fitting-room";
 const listeners = new Set<() => void>();
 
 let cachedRaw: string | null = null;

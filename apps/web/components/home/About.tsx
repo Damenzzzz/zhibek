@@ -26,7 +26,7 @@ export function About() {
             <div className="relative aspect-[4/5] w-full overflow-hidden bg-canvas-2">
               <SkeletonImage
                 src="/tryon-demo.png"
-                alt="Образ из каталога ZHIBEK"
+                alt="Образ из каталога SILK"
                 sizes="(max-width: 1024px) 80vw, 34vw"
                 className="object-top"
                 placeholderClassName="bg-canvas-2"
@@ -37,7 +37,7 @@ export function About() {
           <div>
             <span className="tag text-ink-soft">о нас</span>
             <h2 className="mt-5 font-display text-[clamp(2.25rem,6vw,4.75rem)] uppercase leading-[0.88] tracking-[-0.02em]">
-              Жібек —<br />
+              Silk —<br />
               это <span className="stroke-clay">шёлк</span>
             </h2>
 
@@ -53,12 +53,12 @@ export function About() {
                 сядет на тебя. Половина заказов уезжает обратно.
               </p>
               <p>
-                ZHIBEK разбирает съёмки образов на отдельные вещи, помнит, что с чем
+                SILK разбирает съёмки образов на отдельные вещи, помнит, что с чем
                 снималось, и накладывает их на твою фигуру нейросетью. Никаких кабинок,
                 очередей и «а можно другой размер».
               </p>
               <p className="text-ink">
-                Название — казахское <span className="text-clay">жібек</span>, шёлк. Отсюда
+                Название — английское <span className="text-clay">silk</span>, шёлк. Отсюда
                 и палитра сайта: натуральные красители — марена, шафран, шалфей.
               </p>
             </div>
