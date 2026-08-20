@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
+import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { TryonForm } from "@/components/tryon/TryonForm";
 
 export default async function TryonPage() {
@@ -15,19 +16,45 @@ export default async function TryonPage() {
   const shoes = items.filter((item) => item.category === "shoes");
   const bags = items.filter((item) => item.category === "bag");
 
-  // "Готовые образы" — только пары верх+низ из одного look_id, как и раньше;
-  // обувь/сумку туда не подмешиваем (осознанное упрощение — выбираются
-  // отдельно в своих секциях).
-  const looksById = new Map<string, { topItem?: (typeof items)[number]; bottomItem?: (typeof items)[number] }>();
+  // Полные образы: группируем все вещи по look_id и берём по одной на слот.
+  // Верхняя одежда (жилет/жакет) — отдельный слот, надевается поверх верха.
+  // Обложка образа — фото модели в полном комплекте (data/catalog/looks/<id>.jpg,
+  // синкается в public/catalog/looks), с откатом на фото одной вещи.
+  const looksById = new Map<string, typeof items>();
   for (const item of items) {
-    const entry = looksById.get(item.lookId) ?? {};
-    if (item.category === "top" || item.category === "outerwear") entry.topItem = item;
-    if (item.category === "bottom") entry.bottomItem = item;
-    looksById.set(item.lookId, entry);
+    const arr = looksById.get(item.lookId) ?? [];
+    arr.push(item);
+    looksById.set(item.lookId, arr);
   }
   const looks = Array.from(looksById.entries())
-    .filter(([, entry]) => entry.topItem && entry.bottomItem)
-    .map(([lookId, entry]) => ({ lookId, topItem: entry.topItem!, bottomItem: entry.bottomItem! }));
+    .map(([lookId, lookItems]) => {
+      const first = (cat: string) => lookItems.find((i) => i.category === cat);
+      const outerwear = first("outerwear");
+      const top = first("top");
+      const bottom = first("bottom");
+      const shoesItem = first("shoes");
+      const bag = first("bag");
+      const slots = [outerwear, top, bottom, shoesItem, bag].filter((i): i is (typeof items)[number] => Boolean(i));
+      const rep = outerwear ?? top ?? slots[0];
+      return {
+        lookId,
+        cover: `/catalog/looks/${lookId}.jpg`,
+        fallbackImage: rep ? catalogImageUrl(rep.imagePath) : "",
+        outerwearId: outerwear?.id,
+        topId: top?.id,
+        bottomId: bottom?.id,
+        shoesId: shoesItem?.id,
+        bagId: bag?.id,
+        itemCount: slots.length,
+      };
+    })
+    // Образ = минимум 2 вещи (иначе это не «комплект»).
+    .filter((l) => l.itemCount >= 2)
+    .sort((a, b) => {
+      const na = Number(a.lookId);
+      const nb = Number(b.lookId);
+      return Number.isNaN(na) || Number.isNaN(nb) ? a.lookId.localeCompare(b.lookId) : na - nb;
+    });
 
   return (
     <div className="flex flex-1 flex-col bg-canvas">
