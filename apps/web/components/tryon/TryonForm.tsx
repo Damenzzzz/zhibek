@@ -23,10 +23,26 @@ interface Item {
   lookId: string;
 }
 
+// Полный образ (комплект) — все вещи одного look_id по слотам. Примеряется
+// целиком за один вызов Gemini (верхняя одежда надевается ПОВЕРХ верха).
 interface Look {
   lookId: string;
-  topItem: Item;
-  bottomItem: Item;
+  cover: string; // /catalog/looks/<lookId>.jpg — модель в полном образе
+  fallbackImage: string; // фото одной вещи образа — если обложки нет
+  outerwearId?: string;
+  topId?: string;
+  bottomId?: string;
+  shoesId?: string;
+  bagId?: string;
+  itemCount: number;
+}
+
+function itemsPlural(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n} вещь`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} вещи`;
+  return `${n} вещей`;
 }
 
 interface TryonResult {
@@ -72,6 +88,46 @@ function ItemThumb({
       <p className="mt-2 line-clamp-2 font-grotesk text-[10px] leading-tight text-ink-soft">
         {item.description ?? CATEGORY_LABELS[item.category as CatalogCategory]}
       </p>
+    </button>
+  );
+}
+
+// Карточка готового образа: обложка (модель в полном комплекте) с откатом на
+// фото одной вещи, если обложки нет.
+function LookCardButton({
+  look,
+  selected,
+  onClick,
+}: {
+  look: Look;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const [src, setSrc] = useState(look.cover);
+  return (
+    <button type="button" onClick={onClick} aria-pressed={selected} className="group text-left">
+      <div
+        className={
+          "relative aspect-[3/4] overflow-hidden bg-canvas-2 transition-all duration-300 " +
+          (selected ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas" : "ring-1 ring-hair-ink")
+        }
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          onError={() => setSrc((cur) => (cur === look.fallbackImage ? cur : look.fallbackImage))}
+          alt={`Готовый образ ${look.lookId}`}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <span className="absolute left-0 top-0 bg-espresso px-2.5 py-1.5 font-grotesk text-[9px] uppercase tracking-[0.2em] text-canvas-dim">
+          {itemsPlural(look.itemCount)}
+        </span>
+        {selected && (
+          <span className="absolute inset-x-0 bottom-0 bg-clay py-1 text-center font-grotesk text-[9px] uppercase tracking-[0.2em] text-canvas">
+            выбрано
+          </span>
+        )}
+      </div>
     </button>
   );
 }
@@ -206,6 +262,15 @@ export function TryonForm({
   const [result, setResult] = useState<TryonResult | null>(null);
   const [matches, setMatches] = useState<Item[]>([]);
   const [history, setHistory] = useState<TryonResult[] | null>(null);
+  // Режим примерки: «полный образ» (комплект целиком) или «по частям».
+  // Если пришли из примерочной с предвыбором вещей — сразу «по частям».
+  const hasPreselect = Boolean(
+    searchParams.get("top") || searchParams.get("bottom") || searchParams.get("shoes") || searchParams.get("bag")
+  );
+  const [mode, setMode] = useState<"full" | "pieces">(
+    hasPreselect || looks.length === 0 ? "pieces" : "full"
+  );
+  const [selectedLookId, setSelectedLookId] = useState<string | null>(null);
 
   // Якорь для рекомендаций "Дополните образ" — первая выбранная вещь любой
   // категории. Пока ничего не выбрано (свежий заход без предвыбора), anchor
@@ -255,11 +320,7 @@ export function TryonForm({
   const visibleMatches = matches.filter((item) => !selectedIds.has(item.id));
   const selectedCount = selectedIds.size;
 
-  function pickLook(look: Look) {
-    setTopId(look.topItem.id);
-    setBottomId(look.bottomItem.id);
-    setResult(null);
-  }
+  const selectedLook = looks.find((l) => l.lookId === selectedLookId) ?? null;
 
   function toggleTop(id: string) {
     setTopId((current) => (current === id ? null : id));
@@ -281,8 +342,10 @@ export function TryonForm({
     setResult(null);
   }
 
-  async function handleTryOn() {
-    if (!profile || (!topId && !bottomId && !shoesId && !bagId)) return;
+  // Общий вызов примерки. payload — набор *ItemId (верх/низ/обувь/сумка +
+  // outerwearItemId для полного образа); userId дописывается здесь.
+  async function runTryOn(payload: Record<string, string | null | undefined>) {
+    if (!profile) return;
     setStatus("loading");
     setError(null);
     setResult(null);
@@ -294,13 +357,7 @@ export function TryonForm({
       const response = await fetch("/api/tryon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: profile.id,
-          topItemId: topId,
-          bottomItemId: bottomId,
-          shoesItemId: shoesId,
-          bagItemId: bagId,
-        }),
+        body: JSON.stringify({ userId: profile.id, ...payload }),
         signal: controller.signal,
       });
       const data = await response.json();
@@ -323,6 +380,22 @@ export function TryonForm({
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  function handleTryOn() {
+    if (!topId && !bottomId && !shoesId && !bagId) return;
+    runTryOn({ topItemId: topId, bottomItemId: bottomId, shoesItemId: shoesId, bagItemId: bagId });
+  }
+
+  function handleTryOnLook() {
+    if (!selectedLook) return;
+    runTryOn({
+      outerwearItemId: selectedLook.outerwearId,
+      topItemId: selectedLook.topId,
+      bottomItemId: selectedLook.bottomId,
+      shoesItemId: selectedLook.shoesId,
+      bagItemId: selectedLook.bagId,
+    });
   }
 
   // Без анкеты примерять не на что. Раньше здесь был один абзац, из которого
@@ -380,104 +453,161 @@ export function TryonForm({
       <ProfileSummary profile={profile} />
 
       {looks.length > 0 && (
-        <Carousel title="Готовые образы" count={looks.length}>
-          {looks.map((look) => (
-            <ItemThumb
-              key={look.lookId}
-              item={look.topItem}
-              selected={topId === look.topItem.id && bottomId === look.bottomItem.id}
-              onClick={() => pickLook(look)}
-            />
+        <div className="flex flex-wrap gap-2.5">
+          {(
+            [
+              ["full", "Полный образ"],
+              ["pieces", "Собрать по частям"],
+            ] as const
+          ).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => {
+                setMode(m);
+                setResult(null);
+              }}
+              className={
+                "px-5 py-2.5 font-grotesk text-[11px] uppercase tracking-[0.18em] transition-colors " +
+                (mode === m ? "bg-espresso text-canvas" : "border border-hair-ink text-ink-soft hover:border-ink")
+              }
+            >
+              {label}
+            </button>
           ))}
-        </Carousel>
+        </div>
       )}
 
-      <Carousel title="Верх" count={tops.length}>
-        {tops.map((item) => (
-          <ItemThumb key={item.id} item={item} selected={topId === item.id} onClick={() => toggleTop(item.id)} />
-        ))}
-      </Carousel>
+      {looks.length > 0 && mode === "full" ? (
+        <section className="flex flex-col gap-6">
+          <div>
+            <p className="border-b border-hair-ink pb-2.5 font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+              Готовые образы · {looks.length}
+            </p>
+            <p className="mt-4 max-w-lg font-grotesk text-sm leading-relaxed text-ink-soft">
+              Выбери образ целиком — нейросеть наденет на тебя все вещи комплекта
+              за один раз: верх, верхнюю одежду, низ, обувь и сумку.
+            </p>
+          </div>
 
-      <Carousel title="Низ" count={bottoms.length}>
-        {bottoms.map((item) => (
-          <ItemThumb
-            key={item.id}
-            item={item}
-            selected={bottomId === item.id}
-            onClick={() => toggleBottom(item.id)}
-          />
-        ))}
-      </Carousel>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {looks.map((look) => (
+              <LookCardButton
+                key={look.lookId}
+                look={look}
+                selected={selectedLookId === look.lookId}
+                onClick={() => {
+                  setSelectedLookId(look.lookId);
+                  setResult(null);
+                }}
+              />
+            ))}
+          </div>
 
-      {shoes.length > 0 && (
-        <Carousel title="Обувь" count={shoes.length}>
-          {shoes.map((item) => (
-            <ItemThumb
-              key={item.id}
-              item={item}
-              selected={shoesId === item.id}
-              onClick={() => toggleShoes(item.id)}
-            />
-          ))}
-        </Carousel>
-      )}
-
-      {bags.length > 0 && (
-        <Carousel title="Сумки" count={bags.length}>
-          {bags.map((item) => (
-            <ItemThumb key={item.id} item={item} selected={bagId === item.id} onClick={() => toggleBag(item.id)} />
-          ))}
-        </Carousel>
-      )}
-
-      {!anchorId || visibleMatches.length === 0 ? (
-        <section>
-          <p className="border-b border-hair-ink pb-2.5 font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-            Дополните образ
-          </p>
-          <p className="mt-4 font-grotesk text-sm text-ink-soft">
-            {!anchorId
-              ? "Выбери вещь выше, чтобы увидеть, что к ней подходит."
-              : "Пока нечего предложить к этому выбору."}
-          </p>
+          <button
+            type="button"
+            onClick={handleTryOnLook}
+            disabled={!selectedLook || status === "loading"}
+            className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+          >
+            <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
+            {status === "loading"
+              ? "Примеряем образ… до пары минут"
+              : selectedLook
+                ? `Примерить образ · ${itemsPlural(selectedLook.itemCount)}`
+                : "Выбери образ выше"}
+          </button>
         </section>
       ) : (
-        <Carousel title="Дополните образ" count={visibleMatches.length}>
-          {visibleMatches.map((item) => (
-            <Link key={item.id} href={`/catalog/${item.id}`} className="group w-24 shrink-0 sm:w-28">
-              <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={catalogImageUrl(item.imagePath)}
-                  alt={item.description ?? item.category}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        <>
+          <Carousel title="Верх" count={tops.length}>
+            {tops.map((item) => (
+              <ItemThumb key={item.id} item={item} selected={topId === item.id} onClick={() => toggleTop(item.id)} />
+            ))}
+          </Carousel>
+
+          <Carousel title="Низ" count={bottoms.length}>
+            {bottoms.map((item) => (
+              <ItemThumb
+                key={item.id}
+                item={item}
+                selected={bottomId === item.id}
+                onClick={() => toggleBottom(item.id)}
+              />
+            ))}
+          </Carousel>
+
+          {shoes.length > 0 && (
+            <Carousel title="Обувь" count={shoes.length}>
+              {shoes.map((item) => (
+                <ItemThumb
+                  key={item.id}
+                  item={item}
+                  selected={shoesId === item.id}
+                  onClick={() => toggleShoes(item.id)}
                 />
-              </div>
-              <p className="mt-2 font-grotesk text-[10px] uppercase tracking-[0.12em] text-ink-soft">
-                {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+              ))}
+            </Carousel>
+          )}
+
+          {bags.length > 0 && (
+            <Carousel title="Сумки" count={bags.length}>
+              {bags.map((item) => (
+                <ItemThumb key={item.id} item={item} selected={bagId === item.id} onClick={() => toggleBag(item.id)} />
+              ))}
+            </Carousel>
+          )}
+
+          {!anchorId || visibleMatches.length === 0 ? (
+            <section>
+              <p className="border-b border-hair-ink pb-2.5 font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+                Дополните образ
               </p>
-            </Link>
-          ))}
-        </Carousel>
+              <p className="mt-4 font-grotesk text-sm text-ink-soft">
+                {!anchorId
+                  ? "Выбери вещь выше, чтобы увидеть, что к ней подходит."
+                  : "Пока нечего предложить к этому выбору."}
+              </p>
+            </section>
+          ) : (
+            <Carousel title="Дополните образ" count={visibleMatches.length}>
+              {visibleMatches.map((item) => (
+                <Link key={item.id} href={`/catalog/${item.id}`} className="group w-24 shrink-0 sm:w-28">
+                  <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={catalogImageUrl(item.imagePath)}
+                      alt={item.description ?? item.category}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <p className="mt-2 font-grotesk text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+                    {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+                  </p>
+                </Link>
+              ))}
+            </Carousel>
+          )}
+
+          <button
+            type="button"
+            onClick={handleTryOn}
+            disabled={selectedCount === 0 || status === "loading"}
+            className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+          >
+            <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
+            {status === "loading"
+              ? selectedCount > 1
+                ? "Примеряем… до пары минут"
+                : "Примеряем… 5–20 секунд"
+              : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
+          </button>
+        </>
       )}
 
       {error && (
         <p className="border-l-2 border-clay bg-clay/5 px-4 py-3 font-grotesk text-sm text-ink">{error}</p>
       )}
-
-      <button
-        type="button"
-        onClick={handleTryOn}
-        disabled={selectedCount === 0 || status === "loading"}
-        className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-      >
-        <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
-        {status === "loading"
-          ? selectedCount > 1
-            ? "Примеряем… до пары минут"
-            : "Примеряем… 5–20 секунд"
-          : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
-      </button>
 
       {status === "loading" && (
         <section className="border-t border-hair-ink pt-8">

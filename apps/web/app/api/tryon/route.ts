@@ -10,14 +10,21 @@ import { saveUpload } from "@/lib/storage";
 const bodySchema = z
   .object({
     userId: z.string().min(1),
+    // outerwearItemId нужен для «полного образа»: жилет/жакет надевается
+    // ПОВЕРХ верха (блузки/рубашки) — это отдельный слот, а не альтернатива
+    // топу. В режиме «по частям» он не передаётся (там верх+верхняя одежда в
+    // одной ленте и занимают один слот topItemId).
+    outerwearItemId: z.string().min(1).optional(),
     topItemId: z.string().min(1).optional(),
     bottomItemId: z.string().min(1).optional(),
     shoesItemId: z.string().min(1).optional(),
     bagItemId: z.string().min(1).optional(),
   })
-  .refine((data) => data.topItemId || data.bottomItemId || data.shoesItemId || data.bagItemId, {
-    message: "Выбери хотя бы один предмет",
-  });
+  .refine(
+    (data) =>
+      data.outerwearItemId || data.topItemId || data.bottomItemId || data.shoesItemId || data.bagItemId,
+    { message: "Выбери хотя бы один предмет" }
+  );
 
 export async function POST(request: NextRequest) {
   let json: unknown;
@@ -34,7 +41,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-  const { userId, topItemId, bottomItemId, shoesItemId, bagItemId } = parsed.data;
+  const { userId, outerwearItemId, topItemId, bottomItemId, shoesItemId, bagItemId } = parsed.data;
 
   const [user] = await db.select().from(users).where(eq(users.id, userId));
   if (!user) {
@@ -47,7 +54,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const [topItem, bottomItem, shoesItem, bagItem] = await Promise.all([
+  const [outerwearItem, topItem, bottomItem, shoesItem, bagItem] = await Promise.all([
+    outerwearItemId
+      ? db.select().from(catalogItems).where(eq(catalogItems.id, outerwearItemId)).then((r) => r[0])
+      : undefined,
     topItemId ? db.select().from(catalogItems).where(eq(catalogItems.id, topItemId)).then((r) => r[0]) : undefined,
     bottomItemId
       ? db.select().from(catalogItems).where(eq(catalogItems.id, bottomItemId)).then((r) => r[0])
@@ -57,6 +67,12 @@ export async function POST(request: NextRequest) {
       : undefined,
     bagItemId ? db.select().from(catalogItems).where(eq(catalogItems.id, bagItemId)).then((r) => r[0]) : undefined,
   ]);
+  if (outerwearItemId && !outerwearItem) {
+    return NextResponse.json(
+      { error: "item_not_found", message: `Товар ${outerwearItemId} не найден` },
+      { status: 404 }
+    );
+  }
   if (topItemId && !topItem) {
     return NextResponse.json({ error: "item_not_found", message: `Товар ${topItemId} не найден` }, { status: 404 });
   }
@@ -82,8 +98,12 @@ export async function POST(request: NextRequest) {
   // промпт точнее описал вещь.
   const garmentUrl = (imagePath: string) => `${origin}${catalogImageUrl(imagePath)}`;
   const garments: TryOnGarments = {};
+  if (outerwearItem) garments.outerwear = garmentUrl(outerwearItem.imagePath);
   if (topItem) {
-    if (topItem.category === "outerwear") garments.outerwear = garmentUrl(topItem.imagePath);
+    // В режиме «по частям» верх и верхняя одежда идут одним слотом topItemId —
+    // раскладываем по реальной категории. В «полном образе» верхняя одежда
+    // приходит отдельным outerwearItemId, поэтому здесь topItem — это именно top.
+    if (topItem.category === "outerwear" && !garments.outerwear) garments.outerwear = garmentUrl(topItem.imagePath);
     else garments.top = garmentUrl(topItem.imagePath);
   }
   if (bottomItem) garments.bottom = garmentUrl(bottomItem.imagePath);
@@ -100,7 +120,11 @@ export async function POST(request: NextRequest) {
       .insert(tryonHistory)
       .values({
         userId,
-        topItemId: topItem?.id ?? null,
+        // В tryon_history нет отдельной колонки под верхнюю одежду — если в
+        // образе есть и верх, и верхняя одежда, пишем верх; если только
+        // верхняя одежда, кладём её в topItemId, чтобы запись не была пустой
+        // (важна для истории — сама картинка результата уже сохранена).
+        topItemId: topItem?.id ?? outerwearItem?.id ?? null,
         bottomItemId: bottomItem?.id ?? null,
         shoesItemId: shoesItem?.id ?? null,
         bagItemId: bagItem?.id ?? null,

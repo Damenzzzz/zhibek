@@ -85,6 +85,9 @@ function prunePublicCatalog(rows: SourceItemRow[]): number {
   for (const category of fs.readdirSync(PUBLIC_CATALOG_DIR)) {
     const dir = path.join(PUBLIC_CATALOG_DIR, category);
     if (!fs.statSync(dir).isDirectory()) continue;
+    // looks/ — обложки образов (модель в полном комплекте), не входят в items
+    // и не участвуют в keep-множестве; чистить их здесь нельзя.
+    if (category === "looks") continue;
 
     for (const file of fs.readdirSync(dir)) {
       if (keep.has(`${category}/${file}`)) continue;
@@ -126,6 +129,28 @@ function copyCatalogImages(rows: SourceItemRow[]): void {
   }
 }
 
+// Обложки образов (data/catalog/looks/<id>.jpg) — фото модели в полном
+// комплекте. Не входят в items, поэтому копируются отдельно; нужны для
+// карточек «полный образ» на /tryon. На Vercel не пишем (read-only FS —
+// обложки уезжают в деплой закоммиченными в public/catalog/looks).
+function copyLookCovers(): void {
+  if (process.env.VERCEL) return;
+  const fromDir = path.join(SOURCE_DIR, "looks");
+  if (!fs.existsSync(fromDir)) return;
+  const toDir = path.join(PUBLIC_CATALOG_DIR, "looks");
+  for (const file of fs.readdirSync(fromDir)) {
+    const from = path.join(fromDir, file);
+    const to = path.join(toDir, file);
+    if (!fs.statSync(from).isFile() || fs.existsSync(to)) continue;
+    try {
+      fs.mkdirSync(toDir, { recursive: true });
+      fs.copyFileSync(from, to);
+    } catch (err) {
+      console.warn(`[catalog sync] не удалось скопировать обложку образа ${file}:`, err);
+    }
+  }
+}
+
 export async function syncCatalogItems(): Promise<{
   synced: number;
   removed: number;
@@ -156,6 +181,7 @@ export async function syncCatalogItems(): Promise<{
   // файловая операция для деплоя (см. комментарий у PUBLIC_CATALOG_DIR), не
   // зависит от того, доступна ли (Turso) база.
   copyCatalogImages(rows);
+  copyLookCovers();
   const pruned = prunePublicCatalog(rows);
 
   let removed = 0;
