@@ -9,10 +9,10 @@ import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
 import { Carousel } from "@/components/tryon/Carousel";
 
 // Клиентский предохранитель: если сервер вообще не ответит, не виснем
-// бесконечно. Примерка теперь — один вызов Gemini (весь образ за проход,
-// ~20–40 сек, см. lib/gemini.ts), но оставляем большой запас на очередь/
-// холодный старт serverless-функции.
-const CLIENT_TIMEOUT_MS = 3 * 60 * 1000;
+// бесконечно. Примерка — один вызов Gemini в 1K (обычно ~15–40 сек, см.
+// lib/gemini.ts). Держим запас на холодный старт serverless-функции и один
+// авто-ретрай на стороне сервера (до ~3 мин в худшем случае).
+const CLIENT_TIMEOUT_MS = 4 * 60 * 1000;
 
 interface Item {
   id: string;
@@ -512,7 +512,7 @@ export function TryonForm({
           >
             <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
             {status === "loading"
-              ? "Примеряем образ… до пары минут"
+              ? "Примеряем образ… обычно 15–40 сек"
               : selectedLook
                 ? `Примерить образ · ${itemsPlural(selectedLook.itemCount)}`
                 : "Выбери образ выше"}
@@ -597,9 +597,7 @@ export function TryonForm({
           >
             <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
             {status === "loading"
-              ? selectedCount > 1
-                ? "Примеряем… до пары минут"
-                : "Примеряем… 5–20 секунд"
+              ? "Примеряем… обычно 15–40 сек"
               : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
           </button>
         </>
