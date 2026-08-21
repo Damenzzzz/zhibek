@@ -7,6 +7,13 @@ import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { tryOnWithGemini, GeminiApiError, type TryOnGarments } from "@/lib/gemini";
 import { saveUpload } from "@/lib/storage";
 
+// Примерка = один вызов Gemini image-генерации (обычно 15–40 c, с холодным
+// стартом/ретраем — дольше). По умолчанию serverless-функция Vercel обрывается
+// намного раньше, из-за чего примерка «иногда вообще не работает». Поднимаем
+// потолок и фиксируем nodejs-рантайм (нужен Buffer/сеть к Gemini).
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 const bodySchema = z
   .object({
     userId: z.string().min(1),
