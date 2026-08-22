@@ -46,6 +46,15 @@ export default async function TryonPage() {
         shoesId: shoesItem?.id,
         bagId: bag?.id,
         itemCount: slots.length,
+        // Вещи образа по слотам — чтобы на /tryon показать состав образа и дать
+        // перейти к каждой вещи по отдельности (на её карточку в каталоге).
+        items: slots.map((i) => ({
+          id: i.id,
+          category: i.category,
+          color: i.color,
+          description: i.description,
+          imagePath: i.imagePath,
+        })),
       };
     })
     // Образ = минимум 2 вещи (иначе это не «комплект»).
