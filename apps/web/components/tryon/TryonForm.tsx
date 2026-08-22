@@ -25,6 +25,14 @@ interface Item {
 
 // Полный образ (комплект) — все вещи одного look_id по слотам. Примеряется
 // целиком за один вызов Gemini (верхняя одежда надевается ПОВЕРХ верха).
+interface LookItem {
+  id: string;
+  category: string;
+  color: string | null;
+  description: string | null;
+  imagePath: string;
+}
+
 interface Look {
   lookId: string;
   cover: string; // /catalog/looks/<lookId>.jpg — модель в полном образе
@@ -35,6 +43,7 @@ interface Look {
   shoesId?: string;
   bagId?: string;
   itemCount: number;
+  items: LookItem[]; // вещи образа по слотам — состав комплекта
 }
 
 function itemsPlural(n: number): string {
@@ -503,6 +512,44 @@ export function TryonForm({
               />
             ))}
           </div>
+
+          {selectedLook && (
+            <div className="animate-fade-in-up border-t border-hair-ink pt-6">
+              <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+                Что в образе · {itemsPlural(selectedLook.items.length)}
+              </p>
+              <p className="mt-3 font-grotesk text-[13px] leading-relaxed text-ink-soft">
+                Нажми на любую вещь, чтобы открыть её карточку и рассмотреть отдельно.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {selectedLook.items.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/catalog/${item.id}`}
+                    className="group text-left"
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink transition-all group-hover:ring-clay">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={catalogImageUrl(item.imagePath)}
+                        alt={item.description ?? item.category}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <span className="absolute left-0 top-0 bg-espresso px-2 py-1 font-grotesk text-[8px] uppercase tracking-[0.18em] text-canvas-dim">
+                        {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+                      </span>
+                    </div>
+                    <p className="mt-2 line-clamp-2 font-grotesk text-[11px] leading-tight text-ink transition-colors group-hover:text-clay">
+                      {item.description ?? CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+                    </p>
+                    <span className="mt-1 inline-block font-grotesk text-[9px] uppercase tracking-[0.2em] text-ink-soft transition-colors group-hover:text-clay">
+                      к вещи →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button
             type="button"
