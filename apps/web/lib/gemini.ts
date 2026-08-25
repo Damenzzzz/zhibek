@@ -25,9 +25,16 @@ const ASPECT_RATIO = "3:4";
 
 // Таймаут одного вызова генерации. Nano Banana Pro в 1K обычно отвечает за
 // 15–40 c; 90 c с запасом покрывает холодный старт и очередь, но не даёт
-// запросу висеть 3+ минуты. При превышении вызов прерывается и (по возможности)
-// делается один быстрый повтор — см. tryOnWithGemini.
+// запросу висеть 3+ минуты. Прерывание жёсткое — через AbortController
+// (см. tryOnWithGemini): одного httpOptions.timeout мало, @google/genai не
+// всегда рвёт зависший запрос, из-за чего функция доживала до потолка
+// maxDuration=300 c и её убивал Vercel → примерка отдавала 503.
 const GENERATION_TIMEOUT_MS = 90_000;
+// Общий бюджет на все попытки. Держим его НИЖЕ клиентского таймаута
+// (CLIENT_TIMEOUT_MS = 240 c в TryonForm) и потолка функции (maxDuration=300 c),
+// чтобы сервер всегда успел вернуть внятную ошибку раньше, чем сдастся браузер
+// или платформа. Вторая попытка запускается только если в бюджете есть время.
+const TOTAL_BUDGET_MS = 200_000;
 // Максимум попыток генерации. Пустой ответ/сетевой сбой у image-модели бывают
 // флаки — один повтор ощутимо повышает надёжность («иногда вообще не работает»).
 const MAX_ATTEMPTS = 2;
@@ -162,9 +169,10 @@ export async function tryOnWithGemini(
   const ai = new GoogleGenAI({ apiKey: apiKey() });
   const contents = [{ text: buildPrompt(order) }, modelPart, ...garmentParts];
 
-  // Один прогон генерации с жёстким таймаутом на сам HTTP-вызов (httpOptions.
-  // timeout), чтобы «залипший» запрос не висел минутами.
-  async function attempt(): Promise<Buffer> {
+  // Один прогон генерации с жёстким таймаутом. abortSignal реально прерывает
+  // ожидание ответа (httpOptions.timeout как best-effort сверху), поэтому
+  // запрос не может «залипнуть» дольше отведённого бюджета.
+  async function attempt(signal: AbortSignal): Promise<Buffer> {
     let response;
     try {
       response = await ai.models.generateContent({
@@ -173,11 +181,20 @@ export async function tryOnWithGemini(
         config: {
           imageConfig: { aspectRatio: ASPECT_RATIO, imageSize: IMAGE_SIZE },
           httpOptions: { timeout: GENERATION_TIMEOUT_MS },
+          abortSignal: signal,
         },
       });
     } catch (err) {
+      // Прерывание по нашему дедлайну приходит как AbortError — трактуем как
+      // транзиентный таймаут генерации (ретраится, если в бюджете есть время).
+      const aborted = signal.aborted || (err instanceof Error && err.name === "AbortError");
       const message = err instanceof Error ? err.message : "Сбой генерации Gemini";
-      throw new GeminiApiError("GenerationFailed", `Gemini не смог выполнить примерку: ${message}`);
+      throw new GeminiApiError(
+        "GenerationFailed",
+        aborted
+          ? `Gemini не ответил за отведённое время (${Math.round(GENERATION_TIMEOUT_MS / 1000)} c) — попробуй ещё раз`
+          : `Gemini не смог выполнить примерку: ${message}`
+      );
     }
 
     const parts = response.candidates?.[0]?.content?.parts ?? [];
@@ -203,10 +220,19 @@ export async function tryOnWithGemini(
 
   // Ретраятся только транзиентные сбои (пустой ответ / сетевой сбой-таймаут).
   // ContentBlocked и прочие детерминированные ошибки — сразу наверх.
+  // Общий дедлайн (TOTAL_BUDGET_MS) ограничивает суммарное время всех попыток,
+  // а per-attempt AbortController — время одной; берётся меньший из остатков.
+  const totalDeadline = Date.now() + TOTAL_BUDGET_MS;
   let lastErr: unknown;
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    const remaining = totalDeadline - Date.now();
+    // На новую попытку нет смысла тратиться, если бюджета почти не осталось.
+    if (remaining <= 5_000) break;
+    const perAttempt = Math.min(GENERATION_TIMEOUT_MS, remaining);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), perAttempt);
     try {
-      const bytes = await attempt();
+      const bytes = await attempt(controller.signal);
       await logUsage();
       return bytes;
     } catch (err) {
@@ -215,6 +241,8 @@ export async function tryOnWithGemini(
         err instanceof GeminiApiError && (err.code === "EmptyOutput" || err.code === "GenerationFailed");
       if (!retriable || i === MAX_ATTEMPTS - 1) break;
       console.warn(`[gemini] попытка ${i + 1} не удалась (${(err as GeminiApiError).code}), повторяю`);
+    } finally {
+      clearTimeout(timer);
     }
   }
   throw lastErr;

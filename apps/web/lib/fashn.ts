@@ -4,7 +4,10 @@ import { creditUsage } from "./schema";
 
 const BASE_URL = "https://api.fashn.ai/v1";
 const POLL_INTERVAL_MS = 3000;
-const POLL_TIMEOUT_MS = 3 * 60 * 1000;
+// 150 c: заведомо укладывается и в потолок функции (/api/profile maxDuration=300),
+// и в клиентский таймаут (240 c), оставляя запас на submit + скачивание
+// результата. model-create обычно отвечает за 10–40 c.
+const POLL_TIMEOUT_MS = 150 * 1000;
 
 export type TryOnCategory = "tops" | "bottoms" | "one-pieces" | "auto";
 type FashnModelName = "tryon-v1.6" | "tryon-max" | "model-create" | "face-to-model";
