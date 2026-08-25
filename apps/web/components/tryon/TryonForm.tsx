@@ -271,6 +271,9 @@ export function TryonForm({
   const [result, setResult] = useState<TryonResult | null>(null);
   const [matches, setMatches] = useState<Item[]>([]);
   const [history, setHistory] = useState<TryonResult[] | null>(null);
+  // Остаток суточного лимита примерок (профиль + IP, считается на сервере,
+  // см. lib/tryonLimit.ts). null — ещё не загрузили.
+  const [usage, setUsage] = useState<{ limit: number; remaining: number } | null>(null);
   // Режим примерки: «полный образ» (комплект целиком) или «по частям».
   // Если пришли из примерочной с предвыбором вещей — сразу «по частям».
   const hasPreselect = Boolean(
@@ -309,12 +312,14 @@ export function TryonForm({
   useEffect(() => {
     let cancelled = false;
     const request = profile
-      ? fetch(`/api/tryon/history?userId=${profile.id}`).then((res) => res.json()).then((data) => data.items ?? [])
+      ? fetch(`/api/tryon/history?userId=${profile.id}`).then((res) => res.json())
       : Promise.resolve(null);
 
     request
-      .then((items) => {
-        if (!cancelled) setHistory(items);
+      .then((data) => {
+        if (cancelled) return;
+        setHistory(data ? data.items ?? [] : null);
+        if (data?.usage) setUsage(data.usage);
       })
       .catch(() => {
         if (!cancelled) setHistory([]);
@@ -330,6 +335,10 @@ export function TryonForm({
   const selectedCount = selectedIds.size;
 
   const selectedLook = looks.find((l) => l.lookId === selectedLookId) ?? null;
+
+  // Суточный лимит исчерпан — блокируем кнопки примерки (сервер всё равно
+  // вернёт 429, но так пользователь видит причину сразу).
+  const limitReached = usage !== null && usage.remaining <= 0;
 
   function toggleTop(id: string) {
     setTopId((current) => (current === id ? null : id));
@@ -370,6 +379,9 @@ export function TryonForm({
         signal: controller.signal,
       });
       const data = await response.json();
+      // Сервер возвращает актуальный остаток лимита и при успехе, и при 429 —
+      // синхронизируем счётчик в любом случае.
+      if (data.usage) setUsage(data.usage);
       if (!response.ok) {
         setError(data.message ?? "Не удалось выполнить примерку");
         setStatus("idle");
@@ -554,15 +566,17 @@ export function TryonForm({
           <button
             type="button"
             onClick={handleTryOnLook}
-            disabled={!selectedLook || status === "loading"}
+            disabled={!selectedLook || status === "loading" || limitReached}
             className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
             <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
             {status === "loading"
               ? "Примеряем образ… обычно 15–40 сек"
-              : selectedLook
-                ? `Примерить образ · ${itemsPlural(selectedLook.itemCount)}`
-                : "Выбери образ выше"}
+              : limitReached
+                ? "Лимит на сегодня исчерпан"
+                : selectedLook
+                  ? `Примерить образ · ${itemsPlural(selectedLook.itemCount)}`
+                  : "Выбери образ выше"}
           </button>
         </section>
       ) : (
@@ -639,15 +653,25 @@ export function TryonForm({
           <button
             type="button"
             onClick={handleTryOn}
-            disabled={selectedCount === 0 || status === "loading"}
+            disabled={selectedCount === 0 || status === "loading" || limitReached}
             className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
             <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
             {status === "loading"
               ? "Примеряем… обычно 15–40 сек"
-              : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
+              : limitReached
+                ? "Лимит на сегодня исчерпан"
+                : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
           </button>
         </>
+      )}
+
+      {usage && (
+        <p className="font-grotesk text-[11px] uppercase tracking-[0.16em] text-ink-soft">
+          {usage.remaining > 0
+            ? `Осталось примерок сегодня: ${usage.remaining} из ${usage.limit}`
+            : `Лимит на сегодня исчерпан · ${usage.limit} в день · обновится завтра`}
+        </p>
       )}
 
       {error && (

@@ -1,0 +1,1 @@
+ALTER TABLE `tryon_history` ADD `ip_hash` text;
