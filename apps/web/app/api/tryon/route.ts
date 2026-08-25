@@ -6,6 +6,7 @@ import { catalogItems, tryonHistory, users } from "@/lib/schema";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { tryOnWithGemini, GeminiApiError, type TryOnGarments } from "@/lib/gemini";
 import { saveUpload } from "@/lib/storage";
+import { getTryonUsage, hashRequestIp, TRYON_DAILY_LIMIT } from "@/lib/tryonLimit";
 
 // Примерка = один вызов Gemini image-генерации (обычно 15–40 c, с холодным
 // стартом/ретраем — дольше). По умолчанию serverless-функция Vercel обрывается
@@ -58,6 +59,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "no_model_photo", message: "В профиле нет фото для примерки — заполни анкету заново" },
       { status: 400 }
+    );
+  }
+
+  // Суточный лимит примерок (см. lib/tryonLimit.ts): проверяем ДО платного
+  // вызова Gemini. Считаем по профилю И по IP, поэтому лимит не обходится
+  // сбросом localStorage/новой анкетой. 429 — стандартный статус «слишком часто».
+  const ipHash = hashRequestIp(request);
+  const usage = await getTryonUsage(userId, ipHash);
+  if (usage.remaining <= 0) {
+    return NextResponse.json(
+      {
+        error: "rate_limited",
+        message: `Лимит примерок на сегодня исчерпан (${TRYON_DAILY_LIMIT} в день). Возвращайся завтра.`,
+        usage,
+      },
+      { status: 429 }
     );
   }
 
@@ -136,10 +153,18 @@ export async function POST(request: NextRequest) {
         shoesItemId: shoesItem?.id ?? null,
         bagItemId: bagItem?.id ?? null,
         resultImagePath: resultUrl,
+        ipHash,
       })
       .returning();
 
-    return NextResponse.json({ result: record, modelImageUrl });
+    // Эта примерка только что записана в историю — уменьшаем остаток на 1,
+    // чтобы фронт сразу показал актуальное «осталось сегодня».
+    const nextUsage = {
+      limit: usage.limit,
+      used: usage.used + 1,
+      remaining: Math.max(0, usage.remaining - 1),
+    };
+    return NextResponse.json({ result: record, modelImageUrl, usage: nextUsage });
   } catch (err) {
     if (err instanceof GeminiApiError) {
       return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });

@@ -49,6 +49,11 @@ export const tryonHistory = sqliteTable("tryon_history", {
   shoesItemId: text("shoes_item_id").references(() => catalogItems.id),
   bagItemId: text("bag_item_id").references(() => catalogItems.id),
   resultImagePath: text("result_image_path"),
+  // SHA-256 IP-адреса запроса (не сам IP — приватность). Используется вместе с
+  // userId для суточного лимита примерок в /api/tryon: считаем успешные
+  // генерации за день и по профилю, и по IP, чтобы сброс localStorage / новая
+  // анкета не обнуляли лимит. Nullable — у записей до введения лимита пусто.
+  ipHash: text("ip_hash"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

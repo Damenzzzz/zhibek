@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { tryonHistory } from "@/lib/schema";
+import { getTryonUsage, hashRequestIp } from "@/lib/tryonLimit";
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get("userId");
@@ -15,5 +16,9 @@ export async function GET(request: NextRequest) {
     .where(eq(tryonHistory.userId, userId))
     .orderBy(desc(tryonHistory.createdAt));
 
-  return NextResponse.json({ items });
+  // Остаток суточного лимита (профиль + IP) — фронт показывает «осталось
+  // сегодня» ещё до первой примерки в этой сессии.
+  const usage = await getTryonUsage(userId, hashRequestIp(request));
+
+  return NextResponse.json({ items, usage });
 }
