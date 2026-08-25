@@ -5,6 +5,14 @@ import { users } from "@/lib/schema";
 import { generateModelFromDescription, FashnApiError } from "@/lib/fashn";
 import { saveUpload } from "@/lib/storage";
 
+// Ветка «нет фото» генерирует модель через FASHN model-create и поллит статус
+// до ~2.5 мин (POLL_TIMEOUT_MS в lib/fashn.ts). Без явного лимита serverless-
+// функцию Vercel обрывал дефолтным потолком раньше конца поллинга → фронт
+// показывал «Не удалось связаться с сервером». Поднимаем потолок и фиксируем
+// nodejs-рантайм (нужны Buffer/сеть к FASHN), как в /api/tryon.
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 // age_range/skin_tone/clothing_size/pose — необязательные (см. lib/schema.ts:
 // users.ageRange и т.д. nullable). formData.get() отдаёт null для
 // отсутствующего поля (а не undefined), поэтому явно принимаем оба варианта;
