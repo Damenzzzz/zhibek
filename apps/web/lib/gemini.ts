@@ -12,16 +12,39 @@ import { creditUsage } from "./schema";
 // Генерация модели по анкете (для пользователей без фото) осталась на FASHN —
 // см. lib/fashn.ts generateModelFromDescription.
 
+// Основная модель примерки — Nano Banana Pro (Gemini 3 Pro Image). Она даёт
+// лучшее качество образа, НО это preview-модель с жёсткими квотами: в пики
+// спроса она регулярно отдаёт 503 "high demand" и надолго ложится со стороны
+// Google — никаким числом ретраев это не «пробить».
 const MODEL = "gemini-3-pro-image-preview";
+// Запасная модель — Nano Banana (Gemini 2.5 Flash Image), общедоступная и
+// заметно реже перегруженная. Если Pro отдаёт 503/перегрузку, примерка сама
+// падает на неё, чтобы образ всё равно сгенерировался (пусть и чуть проще по
+// качеству). ВАЖНО: imageSize (1K/2K/4K) — фича только Gemini 3 Pro; на 2.5
+// flash его передавать нельзя, поэтому конфиг картинки строится по модели
+// (см. buildImageConfig).
+const FALLBACK_MODEL = "gemini-2.5-flash-image";
+// Порядок перебора моделей: сначала качество (Pro), при его недоступности —
+// доступность (Flash).
+const MODEL_CHAIN = [MODEL, FALLBACK_MODEL] as const;
 
 // Nano Banana Pro тарифицирует картинку по числу выходных токенов: 1K и 2K —
 // это стандартный тариф (≈ $0.067/шт), 4K — дороже. 1K (≈1024×1365 для 3:4)
 // генерируется заметно БЫСТРЕЕ 2K при том же тарифе и для просмотра в вебе
 // неотличим по качеству — поэтому берём его (примерка перестаёт упираться в
 // таймаут serverless-функции). Поставь "2K", если нужен максимум деталей и не
-// жалко скорости.
+// жалко скорости. imageSize применяется только к Pro-модели.
 const IMAGE_SIZE = "1K";
 const ASPECT_RATIO = "3:4";
+
+// Конфиг картинки под конкретную модель: aspectRatio поддерживают обе, а
+// imageSize — только Gemini 3 Pro. На 2.5 flash-image лишний imageSize может
+// привести к ошибке параметров, поэтому его отдаём только Pro.
+function buildImageConfig(model: string): { aspectRatio: string; imageSize?: string } {
+  return model === MODEL
+    ? { aspectRatio: ASPECT_RATIO, imageSize: IMAGE_SIZE }
+    : { aspectRatio: ASPECT_RATIO };
+}
 
 // Таймаут одного вызова генерации. Nano Banana Pro в 1K обычно отвечает за
 // 15–40 c; 90 c с запасом покрывает холодный старт и очередь, но не даёт
@@ -190,17 +213,17 @@ export async function tryOnWithGemini(
   const ai = new GoogleGenAI({ apiKey: apiKey() });
   const contents = [{ text: buildPrompt(order) }, modelPart, ...garmentParts];
 
-  // Один прогон генерации с жёстким таймаутом. abortSignal реально прерывает
-  // ожидание ответа (httpOptions.timeout как best-effort сверху), поэтому
-  // запрос не может «залипнуть» дольше отведённого бюджета.
-  async function attempt(signal: AbortSignal): Promise<Buffer> {
+  // Один прогон генерации на КОНКРЕТНОЙ модели с жёстким таймаутом. abortSignal
+  // реально прерывает ожидание ответа (httpOptions.timeout как best-effort
+  // сверху), поэтому запрос не может «залипнуть» дольше отведённого бюджета.
+  async function attempt(signal: AbortSignal, model: string): Promise<Buffer> {
     let response;
     try {
       response = await ai.models.generateContent({
-        model: MODEL,
+        model,
         contents,
         config: {
-          imageConfig: { aspectRatio: ASPECT_RATIO, imageSize: IMAGE_SIZE },
+          imageConfig: buildImageConfig(model),
           httpOptions: { timeout: GENERATION_TIMEOUT_MS },
           abortSignal: signal,
         },
@@ -252,43 +275,71 @@ export async function tryOnWithGemini(
     );
   }
 
-  // Ретраятся только транзиентные сбои (пустой ответ / сетевой сбой-таймаут).
-  // ContentBlocked и прочие детерминированные ошибки — сразу наверх.
-  // Общий дедлайн (TOTAL_BUDGET_MS) ограничивает суммарное время всех попыток,
-  // а per-attempt AbortController — время одной; берётся меньший из остатков.
   const totalDeadline = Date.now() + TOTAL_BUDGET_MS;
+
+  // Прогон одной модели с ретраями. Ретраятся только транзиентные сбои: пустой
+  // ответ / сетевой сбой-таймаут (флаки) и перегрузка (503/429, с backoff-паузой
+  // 2/4/8 c). ContentBlocked и прочие детерминированные ошибки — сразу наверх.
+  // Общий дедлайн (TOTAL_BUDGET_MS) ограничивает суммарное время ВСЕХ моделей,
+  // а per-attempt AbortController — время одной попытки; берётся меньший остаток.
+  async function runModel(model: string): Promise<Buffer> {
+    let lastErr: unknown;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const remaining = totalDeadline - Date.now();
+      // На новую попытку нет смысла тратиться, если бюджета почти не осталось.
+      if (remaining <= 5_000) break;
+      const perAttempt = Math.min(GENERATION_TIMEOUT_MS, remaining);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), perAttempt);
+      try {
+        return await attempt(controller.signal, model);
+      } catch (err) {
+        lastErr = err;
+        const overloaded = err instanceof GeminiApiError && err.code === "ModelOverloaded";
+        const retriable =
+          err instanceof GeminiApiError &&
+          (err.code === "EmptyOutput" || err.code === "GenerationFailed" || overloaded);
+        if (!retriable || i === MAX_ATTEMPTS - 1) break;
+        console.warn(`[gemini] ${model}: попытка ${i + 1} не удалась (${(err as GeminiApiError).code}), повторяю`);
+        // При перегрузке/лимите немедленный повтор снова упрётся в 503 — ждём
+        // backoff (2 c, 4 c, 8 c + джиттер), но только если пауза укладывается в
+        // остаток бюджета (иначе смысла в ней нет — сразу отдаём ошибку).
+        if (overloaded) {
+          const delay = RETRY_BASE_DELAY_MS * 2 ** i + Math.floor(Math.random() * 500);
+          if (totalDeadline - Date.now() - delay <= 5_000) break;
+          clearTimeout(timer);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    throw lastErr;
+  }
+
+  // Перебор моделей: сначала Pro (качество), при её перегрузке — Flash
+  // (доступность). На другую модель уходим ТОЛЬКО из-за перегрузки/недоступности
+  // — детерминированные ошибки (ContentBlocked/EmptyOutput) на запасной модели
+  // повторятся, их сразу отдаём наверх. Успех любой модели → логируем расход и
+  // возвращаем картинку.
   let lastErr: unknown;
-  for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    const remaining = totalDeadline - Date.now();
-    // На новую попытку нет смысла тратиться, если бюджета почти не осталось.
-    if (remaining <= 5_000) break;
-    const perAttempt = Math.min(GENERATION_TIMEOUT_MS, remaining);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), perAttempt);
+  for (let m = 0; m < MODEL_CHAIN.length; m++) {
+    const model = MODEL_CHAIN[m];
     try {
-      const bytes = await attempt(controller.signal);
+      const bytes = await runModel(model);
       await logUsage();
       return bytes;
     } catch (err) {
       lastErr = err;
       const overloaded = err instanceof GeminiApiError && err.code === "ModelOverloaded";
-      const retriable =
-        err instanceof GeminiApiError &&
-        (err.code === "EmptyOutput" || err.code === "GenerationFailed" || overloaded);
-      if (!retriable || i === MAX_ATTEMPTS - 1) break;
-      console.warn(`[gemini] попытка ${i + 1} не удалась (${(err as GeminiApiError).code}), повторяю`);
-      // При перегрузке/лимите немедленный повтор снова упрётся в 503 — ждём
-      // backoff (2 c, 4 c, 8 c + джиттер), но только если пауза укладывается в
-      // остаток бюджета (иначе смысла в ней нет — сразу отдаём ошибку).
-      if (overloaded) {
-        const delay = RETRY_BASE_DELAY_MS * 2 ** i + Math.floor(Math.random() * 500);
-        if (totalDeadline - Date.now() - delay <= 5_000) break;
-        clearTimeout(timer);
-        await new Promise((r) => setTimeout(r, delay));
+      const hasNext = m < MODEL_CHAIN.length - 1;
+      // Есть время и следующая модель — падаем на неё только при перегрузке.
+      if (overloaded && hasNext && totalDeadline - Date.now() > 5_000) {
+        console.warn(`[gemini] ${model} перегружена — падаю на запасную модель ${MODEL_CHAIN[m + 1]}`);
         continue;
       }
-    } finally {
-      clearTimeout(timer);
+      break;
     }
   }
   throw lastErr;
