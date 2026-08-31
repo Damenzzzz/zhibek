@@ -167,6 +167,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ result: record, modelImageUrl, usage: nextUsage });
   } catch (err) {
     if (err instanceof GeminiApiError) {
+      // Перегрузка модели — это 503 на стороне Google (не наша ошибка).
+      // Отдаём 503 + Retry-After, чтобы фронт мог предложить повтор позже.
+      if (err.code === "ModelOverloaded") {
+        return NextResponse.json(
+          { error: err.code, message: err.message },
+          { status: 503, headers: { "Retry-After": "60" } }
+        );
+      }
       return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });
     }
     throw err;
