@@ -37,7 +37,13 @@ const GENERATION_TIMEOUT_MS = 90_000;
 const TOTAL_BUDGET_MS = 200_000;
 // Максимум попыток генерации. Пустой ответ/сетевой сбой у image-модели бывают
 // флаки — один повтор ощутимо повышает надёжность («иногда вообще не работает»).
-const MAX_ATTEMPTS = 2;
+// Для перегрузки модели (503 "high demand") повторов чуть больше — они дешёвые
+// (запрос до модели не доходит) и часто «пробивают» временный пик спроса.
+const MAX_ATTEMPTS = 4;
+// Пауза перед повтором при перегрузке (503/UNAVAILABLE) или лимите (429).
+// Немедленный повтор при «high demand» почти всегда снова упирается в 503 —
+// нужен backoff. Растёт по попыткам: 2 c, 4 c, 8 c (+ джиттер).
+const RETRY_BASE_DELAY_MS = 2_000;
 // Таймаут скачивания одной входной картинки (фото модели/товара).
 const IMAGE_FETCH_TIMEOUT_MS = 20_000;
 
@@ -48,6 +54,21 @@ export class GeminiApiError extends Error {
     this.name = "GeminiApiError";
     this.code = code;
   }
+}
+
+// Достаёт HTTP-статус из ошибки @google/genai. SDK кидает ApiError со
+// свойством .status (число) либо кладёт код в .code/сообщение — проверяем всё.
+function errorStatus(err: unknown): number | undefined {
+  if (typeof err !== "object" || err === null) return undefined;
+  const e = err as { status?: unknown; code?: unknown };
+  if (typeof e.status === "number") return e.status;
+  if (typeof e.code === "number") return e.code;
+  const raw = e.status ?? e.code;
+  if (typeof raw === "string") {
+    const n = parseInt(raw, 10);
+    if (!Number.isNaN(n)) return n;
+  }
+  return undefined;
 }
 
 function apiKey(): string {
@@ -188,13 +209,26 @@ export async function tryOnWithGemini(
       // Прерывание по нашему дедлайну приходит как AbortError — трактуем как
       // транзиентный таймаут генерации (ретраится, если в бюджете есть время).
       const aborted = signal.aborted || (err instanceof Error && err.name === "AbortError");
+      if (aborted) {
+        throw new GeminiApiError(
+          "GenerationFailed",
+          `Gemini не ответил за отведённое время (${Math.round(GENERATION_TIMEOUT_MS / 1000)} c) — попробуй ещё раз`
+        );
+      }
+      // Перегрузка модели (503 UNAVAILABLE "model is overloaded / high demand")
+      // и лимит запросов (429 RESOURCE_EXHAUSTED) — транзиентные ошибки на
+      // стороне Google. Их надо ретраить с паузой (backoff), а не сразу отдавать
+      // сырое сообщение пользователю. Отдельный код "ModelOverloaded", чтобы
+      // цикл повторов сделал паузу и показал внятный текст.
+      const status = errorStatus(err);
       const message = err instanceof Error ? err.message : "Сбой генерации Gemini";
-      throw new GeminiApiError(
-        "GenerationFailed",
-        aborted
-          ? `Gemini не ответил за отведённое время (${Math.round(GENERATION_TIMEOUT_MS / 1000)} c) — попробуй ещё раз`
-          : `Gemini не смог выполнить примерку: ${message}`
-      );
+      if (status === 503 || status === 429 || /overload|high demand|unavailable/i.test(message)) {
+        throw new GeminiApiError(
+          "ModelOverloaded",
+          "Gemini сейчас перегружен запросами — это временно. Попробуй ещё раз через минуту."
+        );
+      }
+      throw new GeminiApiError("GenerationFailed", `Gemini не смог выполнить примерку: ${message}`);
     }
 
     const parts = response.candidates?.[0]?.content?.parts ?? [];
@@ -237,10 +271,22 @@ export async function tryOnWithGemini(
       return bytes;
     } catch (err) {
       lastErr = err;
+      const overloaded = err instanceof GeminiApiError && err.code === "ModelOverloaded";
       const retriable =
-        err instanceof GeminiApiError && (err.code === "EmptyOutput" || err.code === "GenerationFailed");
+        err instanceof GeminiApiError &&
+        (err.code === "EmptyOutput" || err.code === "GenerationFailed" || overloaded);
       if (!retriable || i === MAX_ATTEMPTS - 1) break;
       console.warn(`[gemini] попытка ${i + 1} не удалась (${(err as GeminiApiError).code}), повторяю`);
+      // При перегрузке/лимите немедленный повтор снова упрётся в 503 — ждём
+      // backoff (2 c, 4 c, 8 c + джиттер), но только если пауза укладывается в
+      // остаток бюджета (иначе смысла в ней нет — сразу отдаём ошибку).
+      if (overloaded) {
+        const delay = RETRY_BASE_DELAY_MS * 2 ** i + Math.floor(Math.random() * 500);
+        if (totalDeadline - Date.now() - delay <= 5_000) break;
+        clearTimeout(timer);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
     } finally {
       clearTimeout(timer);
     }
