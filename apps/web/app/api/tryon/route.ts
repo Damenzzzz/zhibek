@@ -22,11 +22,16 @@ const bodySchema = z
     // ПОВЕРХ верха (блузки/рубашки) — это отдельный слот, а не альтернатива
     // топу. В режиме «по частям» он не передаётся (там верх+верхняя одежда в
     // одной ленте и занимают один слот topItemId).
-    outerwearItemId: z.string().min(1).optional(),
-    topItemId: z.string().min(1).optional(),
-    bottomItemId: z.string().min(1).optional(),
-    shoesItemId: z.string().min(1).optional(),
-    bagItemId: z.string().min(1).optional(),
+    //
+    // .nullish(), а не .optional(): фронт в режиме «Собрать по частям» шлёт
+    // невыбранные слоты как null (useState<string | null>), а JSON.stringify
+    // их не выбрасывает — .optional() принимает только undefined/отсутствие
+    // ключа и падал с «expected string, received null».
+    outerwearItemId: z.string().min(1).nullish(),
+    topItemId: z.string().min(1).nullish(),
+    bottomItemId: z.string().min(1).nullish(),
+    shoesItemId: z.string().min(1).nullish(),
+    bagItemId: z.string().min(1).nullish(),
   })
   .refine(
     (data) =>
