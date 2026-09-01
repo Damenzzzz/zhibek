@@ -142,6 +142,7 @@ function LookCardButton({
 }
 
 const AGE_RANGE_LABELS: Record<string, string> = {
+  "0-18": "0–18 лет",
   "18-25": "18–25 лет",
   "26-35": "26–35 лет",
   "36-45": "36–45 лет",

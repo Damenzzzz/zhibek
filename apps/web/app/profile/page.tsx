@@ -21,6 +21,7 @@ const GENDERS = [
 ];
 
 const AGE_RANGES = [
+  { value: "0-18", label: "0–18" },
   { value: "18-25", label: "18–25" },
   { value: "26-35", label: "26–35" },
   { value: "36-45", label: "36–45" },

@@ -135,7 +135,12 @@ export async function POST(request: NextRequest) {
   if (bagItem) garments.bag = garmentUrl(bagItem.imagePath);
 
   try {
-    const resultBytes = await tryOnWithGemini(modelImageUrl, garments);
+    const resultBytes = await tryOnWithGemini(modelImageUrl, garments, {
+      gender: user.gender,
+      ageRange: user.ageRange,
+      skinTone: user.skinTone,
+      bodyType: user.bodyType,
+    });
     // Gemini отдаёт байты картинки — сохраняем их так же, как загруженные фото:
     // локально в public/uploads, на Vercel — в Blob (см. lib/storage.ts).
     const resultUrl = await saveUpload(resultBytes, "png", "image/png");
