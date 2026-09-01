@@ -151,7 +151,72 @@ const GARMENT_PHRASES: Record<keyof TryOnGarments, string> = {
   bag: "сумку с фото (модель держит её в руке)",
 };
 
-function buildPrompt(order: (keyof TryOnGarments)[]): string {
+// Анкета пользователя (см. lib/schema.ts users) — используется как ориентир для
+// генерации, чтобы слабая fallback-модель (2.5 flash) не «уплывала» по внешности.
+// Все поля необязательны; приоритет всегда у фото (изображение 1).
+export interface TryOnProfile {
+  gender?: string | null;
+  ageRange?: string | null;
+  skinTone?: string | null;
+  bodyType?: string | null;
+}
+
+// Явная фиксация пола в промпте. Без неё слабая fallback-модель (2.5 flash),
+// увидев женские вещи-референсы, «уплывает» и меняет пол человека — из-за чего
+// пользователь получал «женщину вместо себя». Пол берём из анкеты (profile),
+// а не угадываем по фото.
+function genderClause(gender?: string | null): string {
+  const g = gender?.toLowerCase();
+  if (g === "male" || g === "мужской" || g === "man") {
+    return " Человек на изображении 1 — МУЖЧИНА; сохрани мужской пол, мужские черты лица и фигуру, не превращай его в женщину.";
+  }
+  if (g === "female" || g === "женский" || g === "woman") {
+    return " Человек на изображении 1 — ЖЕНЩИНА; сохрани женский пол, женские черты лица и фигуру, не превращай её в мужчину.";
+  }
+  return " Сохрани тот же пол человека, что на изображении 1 — не меняй его.";
+}
+
+const AGE_PHRASES: Record<string, string> = {
+  "0-18": "ребёнок или подросток (0–18 лет)",
+  "18-25": "молодой человек 18–25 лет",
+  "26-35": "возраст 26–35 лет",
+  "36-45": "возраст 36–45 лет",
+  "45+": "возраст старше 45 лет",
+};
+
+const SKIN_PHRASES: Record<string, string> = {
+  fair: "светлый тон кожи",
+  light: "светло-смуглый тон кожи",
+  medium: "смуглый тон кожи",
+  deep: "тёмный тон кожи",
+};
+
+const BODY_PHRASES: Record<string, string> = {
+  slim: "стройное телосложение",
+  athletic: "спортивное телосложение",
+  average: "среднее телосложение",
+  "plus-size": "полное телосложение",
+};
+
+// Собирает ориентиры по анкете (возраст/тон кожи/телосложение) в один хвост
+// промпта. Пол выносится отдельно (genderClause) — он критичнее. Всё это лишь
+// уточняет внешность; если анкета расходится с фото — приоритет у фото.
+function appearanceClause(profile?: TryOnProfile): string {
+  if (!profile) return "";
+  const traits = [
+    profile.ageRange ? AGE_PHRASES[profile.ageRange] : null,
+    profile.skinTone ? SKIN_PHRASES[profile.skinTone] : null,
+    profile.bodyType ? BODY_PHRASES[profile.bodyType] : null,
+  ].filter((t): t is string => Boolean(t));
+  if (traits.length === 0) return "";
+  return (
+    " Ориентиры внешности человека по анкете: " +
+    traits.join(", ") +
+    ". Придерживайся их, но приоритет всегда у фото (изображение 1) — если что-то расходится, следуй фото."
+  );
+}
+
+function buildPrompt(order: (keyof TryOnGarments)[], profile?: TryOnProfile): string {
   const bullets = order.map((key, i) => `- изображение ${i + 2}: ${GARMENT_PHRASES[key]}`).join("\n");
   const hasOuterAndTop = order.includes("outerwear") && order.includes("top");
   const layering = hasOuterAndTop
@@ -167,7 +232,10 @@ function buildPrompt(order: (keyof TryOnGarments)[]): string {
     "(с головы до обуви, вся фигура в кадре) ТОГО ЖЕ человека, что на " +
     "изображении 1 — с тем же лицом, чертами, причёской, цветом волос, тоном " +
     "кожи, телосложением, ростом и позой, на том же однотонном фоне с той же " +
-    "мягкой студийной подсветкой. Надень на человека ТОЛЬКО перечисленные выше " +
+    "мягкой студийной подсветкой." +
+    genderClause(profile?.gender) +
+    appearanceClause(profile) +
+    " Надень на человека ТОЛЬКО перечисленные выше " +
     "товары вместо его текущей одежды, собрав из них цельный образ." +
     layering +
     "\n\nТочно воспроизведи каждый товар: тот же цвет, оттенок, ткань, крой, " +
@@ -196,7 +264,8 @@ async function logUsage(): Promise<void> {
  */
 export async function tryOnWithGemini(
   modelImageUrl: string,
-  garments: TryOnGarments
+  garments: TryOnGarments,
+  profile?: TryOnProfile
 ): Promise<Buffer> {
   const order = (Object.keys(GARMENT_PHRASES) as (keyof TryOnGarments)[]).filter(
     (key) => garments[key]
@@ -211,7 +280,7 @@ export async function tryOnWithGemini(
   ]);
 
   const ai = new GoogleGenAI({ apiKey: apiKey() });
-  const contents = [{ text: buildPrompt(order) }, modelPart, ...garmentParts];
+  const contents = [{ text: buildPrompt(order, profile) }, modelPart, ...garmentParts];
 
   // Один прогон генерации на КОНКРЕТНОЙ модели с жёстким таймаутом. abortSignal
   // реально прерывает ожидание ответа (httpOptions.timeout как best-effort
