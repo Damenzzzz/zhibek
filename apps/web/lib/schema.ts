@@ -16,6 +16,33 @@ export const catalogItems = sqliteTable("catalog_items", {
   images: text("images"),
   lookId: text("look_id").notNull(),
   sourcePhoto: text("source_photo").notNull(),
+  // Кто создал запись: "pipeline" — синк из Python-пайплайна (data/catalog),
+  // "admin" — добавлено вручную через админку (/admin). Разделение нужно, чтобы
+  // syncCatalog.ts не стирал админские товары как «пропавшие из источника»
+  // (см. lib/syncCatalog.ts). Старые записи без значения считаются pipeline.
+  source: text("source").notNull().default("pipeline"),
+  // Порядок вывода в каталоге/примерке (меньше — раньше). Задаётся в админке
+  // («добавить по позиции»); синк не трогает его при upsert, чтобы ручная
+  // сортировка pipeline-товаров сохранялась между синхронизациями.
+  sortIndex: integer("sort_index").notNull().default(0),
+});
+
+// Метаданные образа (комплекта). Товары образа связываются общим look_id в
+// catalog_items; эта таблица хранит обложку и заголовок для образов, созданных
+// вручную в админке (у pipeline-образов обложка лежит файлом в
+// data/catalog/looks/<id>.jpg, см. lib/syncCatalog.ts). Строка не обязательна:
+// образ существует, пока есть хотя бы один товар с его look_id.
+export const looks = sqliteTable("looks", {
+  id: text("id").primaryKey(),
+  title: text("title"),
+  // Полный публичный URL/путь обложки (модель в полном образе). Для админских
+  // образов — результат saveUpload (/uploads/* или Vercel Blob URL).
+  coverPath: text("cover_path"),
+  sortIndex: integer("sort_index").notNull().default(0),
+  source: text("source").notNull().default("admin"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
 });
 
 export const users = sqliteTable("users", {
@@ -33,6 +60,11 @@ export const users = sqliteTable("users", {
   skinTone: text("skin_tone"),
   clothingSize: text("clothing_size"),
   pose: text("pose"),
+  // Тип фигуры (силуэт): hourglass/pear/apple/rectangle/inverted-triangle —
+  // отдельно от bodyType (телосложение slim/athletic/…). Идёт в промпт примерки
+  // и генерации модели (см. lib/gemini.ts, lib/fashn.ts). Nullable — старые
+  // анкеты без этого поля не ломаются.
+  figureType: text("figure_type"),
 });
 
 export const tryonHistory = sqliteTable("tryon_history", {

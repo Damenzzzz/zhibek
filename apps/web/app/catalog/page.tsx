@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
 import { CATEGORY_LABELS, isCatalogCategory, type CatalogCategory } from "@/lib/categories";
@@ -13,9 +13,15 @@ export default async function CatalogPage({
   const { category } = await searchParams;
   const activeCategory = category && isCatalogCategory(category) ? category : undefined;
 
+  // Порядок: сначала ручная позиция из админки (sort_index), затем id —
+  // так добавленные вручную товары можно расставить «по позиции».
   const items = activeCategory
-    ? await db.select().from(catalogItems).where(eq(catalogItems.category, activeCategory))
-    : await db.select().from(catalogItems);
+    ? await db
+        .select()
+        .from(catalogItems)
+        .where(eq(catalogItems.category, activeCategory))
+        .orderBy(asc(catalogItems.sortIndex), asc(catalogItems.id))
+    : await db.select().from(catalogItems).orderBy(asc(catalogItems.sortIndex), asc(catalogItems.id));
 
   return (
     <div className="flex flex-1 flex-col bg-canvas">

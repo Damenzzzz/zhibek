@@ -224,7 +224,17 @@ export interface ModelDescriptionExtras {
   ageRange?: string | null;
   skinTone?: string | null;
   pose?: string | null;
+  figureType?: string | null;
 }
+
+// Тип фигуры (силуэт) -> англоязычное описание для промпта model-create.
+const FIGURE_PROMPT_HINTS: Record<string, string> = {
+  hourglass: "hourglass body shape",
+  pear: "pear (triangle) body shape with hips wider than shoulders",
+  apple: "apple (round) body shape",
+  rectangle: "rectangle (straight) body shape",
+  "inverted-triangle": "inverted triangle body shape with shoulders wider than hips",
+};
 
 const POSE_PROMPT_HINTS: Record<string, string> = {
   front: "Standing pose, front-facing",
@@ -240,15 +250,16 @@ export async function generateModelFromDescription(
   gender: string,
   extras: ModelDescriptionExtras = {}
 ): Promise<string> {
-  const { ageRange, skinTone, pose } = extras;
+  const { ageRange, skinTone, pose, figureType } = extras;
 
   const agePart = ageRange ? `, ${ageRange} years old` : "";
   const skinPart = skinTone ? `, ${skinTone} skin tone` : "";
+  const figurePart = (figureType && FIGURE_PROMPT_HINTS[figureType]) ? `, ${FIGURE_PROMPT_HINTS[figureType]}` : "";
   const posePart = (pose && POSE_PROMPT_HINTS[pose]) || POSE_PROMPT_HINTS.front;
 
   const prompt =
     `Full body fashion photo of a ${gender} model${agePart}, approximately ${heightCm} cm tall ` +
-    `and ${weightKg} kg, ${bodyType} body type${skinPart}. ${posePart}, neutral ` +
+    `and ${weightKg} kg, ${bodyType} body type${figurePart}${skinPart}. ${posePart}, neutral ` +
     `light gray studio background, soft even lighting, suitable for virtual clothing try-on.`;
 
   return runToCompletion("model-create", {

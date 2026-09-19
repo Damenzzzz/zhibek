@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
-import { and, isNotNull, notInArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { db } from "./db";
 import { catalogItems, tryonHistory } from "./schema";
 
@@ -200,7 +200,7 @@ export async function syncCatalogItems(): Promise<{
       };
       await tx
         .insert(catalogItems)
-        .values(values)
+        .values({ ...values, source: "pipeline" })
         .onConflictDoUpdate({
           target: catalogItems.id,
           set: {
@@ -212,6 +212,9 @@ export async function syncCatalogItems(): Promise<{
             images: values.images,
             lookId: values.lookId,
             sourcePhoto: values.sourcePhoto,
+            // source возвращаем в "pipeline" (вдруг id совпал), но sortIndex
+            // НЕ трогаем — ручная сортировка из админки должна пережить синк.
+            source: "pipeline",
           },
         });
     }
@@ -226,26 +229,37 @@ export async function syncCatalogItems(): Promise<{
     if (rows.length > 0) {
       const sourceIds = rows.map((item) => item.id);
 
-      // tryon_history ссылается на catalog_items четырьмя внешними ключами
-      // (верх/низ/обувь/сумка). Прошлые примерки снятых с публикации вещей
-      // удалять нельзя — картинка результата остаётся ценной, — поэтому
-      // обнуляем сами ссылки. Без этого DELETE ниже падает с
-      // SQLITE_CONSTRAINT: FOREIGN KEY constraint failed, а вместе с ним
-      // и весь instrumentation hook (см. instrumentation.ts).
-      for (const column of [
-        "topItemId",
-        "bottomItemId",
-        "shoesItemId",
-        "bagItemId",
-      ] as const) {
-        await tx
-          .update(tryonHistory)
-          .set({ [column]: null })
-          .where(and(isNotNull(tryonHistory[column]), notInArray(tryonHistory[column], sourceIds)));
-      }
+      // Удаляем ТОЛЬКО pipeline-товары, которых больше нет в источнике.
+      // Админские (source = "admin") трогать нельзя — их нет в data/catalog и
+      // синк не должен считать их «пропавшими» (см. lib/schema.ts catalogItems.source).
+      const toDelete = await tx
+        .select({ id: catalogItems.id })
+        .from(catalogItems)
+        .where(and(eq(catalogItems.source, "pipeline"), notInArray(catalogItems.id, sourceIds)));
+      const deleteIds = toDelete.map((r) => r.id);
 
-      const result = await tx.delete(catalogItems).where(notInArray(catalogItems.id, sourceIds));
-      removed = result.rowsAffected ?? 0;
+      if (deleteIds.length > 0) {
+        // tryon_history ссылается на catalog_items четырьмя внешними ключами
+        // (верх/низ/обувь/сумка). Прошлые примерки снятых с публикации вещей
+        // удалять нельзя — картинка результата остаётся ценной, — поэтому
+        // обнуляем сами ссылки на удаляемые товары. Без этого DELETE ниже падает
+        // с SQLITE_CONSTRAINT: FOREIGN KEY constraint failed, а вместе с ним и
+        // весь instrumentation hook (см. instrumentation.ts).
+        for (const column of [
+          "topItemId",
+          "bottomItemId",
+          "shoesItemId",
+          "bagItemId",
+        ] as const) {
+          await tx
+            .update(tryonHistory)
+            .set({ [column]: null })
+            .where(inArray(tryonHistory[column], deleteIds));
+        }
+
+        const result = await tx.delete(catalogItems).where(inArray(catalogItems.id, deleteIds));
+        removed = result.rowsAffected ?? 0;
+      }
     }
   });
 

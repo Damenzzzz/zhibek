@@ -145,6 +145,7 @@ export async function POST(request: NextRequest) {
       ageRange: user.ageRange,
       skinTone: user.skinTone,
       bodyType: user.bodyType,
+      figureType: user.figureType,
     });
     // Gemini отдаёт байты картинки — сохраняем их так же, как загруженные фото:
     // локально в public/uploads, на Vercel — в Blob (см. lib/storage.ts).

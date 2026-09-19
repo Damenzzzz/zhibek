@@ -159,6 +159,7 @@ export interface TryOnProfile {
   ageRange?: string | null;
   skinTone?: string | null;
   bodyType?: string | null;
+  figureType?: string | null;
 }
 
 // Явная фиксация пола в промпте. Без неё слабая fallback-модель (2.5 flash),
@@ -198,6 +199,15 @@ const BODY_PHRASES: Record<string, string> = {
   "plus-size": "полное телосложение",
 };
 
+// Тип фигуры (силуэт) — см. lib/schema.ts users.figureType и app/profile/page.tsx.
+const FIGURE_PHRASES: Record<string, string> = {
+  hourglass: "фигура «песочные часы» (выраженная талия, плечи и бёдра сбалансированы)",
+  pear: "фигура «груша» (бёдра шире плеч)",
+  apple: "фигура «яблоко» (полнота в области талии и живота)",
+  rectangle: "фигура «прямоугольник» (плечи, талия и бёдра примерно одной ширины)",
+  "inverted-triangle": "фигура «перевёрнутый треугольник» (плечи шире бёдер)",
+};
+
 // Собирает ориентиры по анкете (возраст/тон кожи/телосложение) в один хвост
 // промпта. Пол выносится отдельно (genderClause) — он критичнее. Всё это лишь
 // уточняет внешность; если анкета расходится с фото — приоритет у фото.
@@ -207,6 +217,7 @@ function appearanceClause(profile?: TryOnProfile): string {
     profile.ageRange ? AGE_PHRASES[profile.ageRange] : null,
     profile.skinTone ? SKIN_PHRASES[profile.skinTone] : null,
     profile.bodyType ? BODY_PHRASES[profile.bodyType] : null,
+    profile.figureType ? FIGURE_PHRASES[profile.figureType] : null,
   ].filter((t): t is string => Boolean(t));
   if (traits.length === 0) return "";
   return (
