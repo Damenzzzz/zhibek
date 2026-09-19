@@ -5,6 +5,12 @@
 // в apps/web/public/catalog при синхронизации, и отдаём их оттуда как
 // обычную статику.
 export function catalogImageUrl(imagePath: string): string {
+  // Товары из админки (см. /api/admin) хранят уже готовый публичный адрес:
+  // абсолютный URL (Vercel Blob) или путь из saveUpload (/uploads/…). Отдаём
+  // его как есть — префикс /catalog/ добавляется только для файлов пайплайна.
+  if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith("/uploads/") || imagePath.startsWith("/catalog/")) {
+    return imagePath;
+  }
   const marker = "data/catalog/";
   const idx = imagePath.indexOf(marker);
   const relative = idx >= 0 ? imagePath.slice(idx + marker.length) : imagePath;

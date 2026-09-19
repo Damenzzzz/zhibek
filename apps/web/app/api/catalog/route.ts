@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
 import { CATEGORIES, isCatalogCategory } from "@/lib/categories";
@@ -18,8 +18,12 @@ export async function GET(request: NextRequest) {
   }
 
   const items = category
-    ? await db.select().from(catalogItems).where(eq(catalogItems.category, category))
-    : await db.select().from(catalogItems);
+    ? await db
+        .select()
+        .from(catalogItems)
+        .where(eq(catalogItems.category, category))
+        .orderBy(asc(catalogItems.sortIndex), asc(catalogItems.id))
+    : await db.select().from(catalogItems).orderBy(asc(catalogItems.sortIndex), asc(catalogItems.id));
 
   return NextResponse.json({ items });
 }

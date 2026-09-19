@@ -17,6 +17,7 @@ export interface StoredProfile {
   skinTone: string | null;
   clothingSize: string | null;
   pose: string | null;
+  figureType: string | null;
 }
 
 export function readStoredProfile(): StoredProfile | null {

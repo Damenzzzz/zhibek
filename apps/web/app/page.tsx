@@ -1,3 +1,4 @@
+import { asc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
 import { Hero } from "@/components/home/Hero";
@@ -15,7 +16,11 @@ import { FinalCta } from "@/components/home/FinalCta";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const items = await db.select().from(catalogItems).limit(8);
+  const items = await db
+    .select()
+    .from(catalogItems)
+    .orderBy(asc(catalogItems.sortIndex), asc(catalogItems.id))
+    .limit(8);
 
   // Ритм полос: кость → песок → эспрессо → кость → песок → терракота,
   // дальше тёмный подвал. Одна тёмная и одна цветная плашка на всю страницу —

@@ -20,6 +20,16 @@ const GENDERS = [
   { value: "male", label: "Мужской" },
 ];
 
+// Тип фигуры (силуэт) — отдельно от телосложения. Значения совпадают с
+// FIGURE_PHRASES в lib/gemini.ts и FIGURE_PROMPT_HINTS в lib/fashn.ts.
+const FIGURE_TYPES = [
+  { value: "hourglass", label: "Песочные часы" },
+  { value: "pear", label: "Груша" },
+  { value: "apple", label: "Яблоко" },
+  { value: "rectangle", label: "Прямоугольник" },
+  { value: "inverted-triangle", label: "Перевёрнутый треугольник" },
+];
+
 const AGE_RANGES = [
   { value: "0-18", label: "0–18" },
   { value: "18-25", label: "18–25" },
@@ -261,11 +271,23 @@ function ProfileForm() {
       <div className="border-t border-hair-ink pt-8">
         <p className="font-display text-xl uppercase tracking-tight text-ink">Дополнительно</p>
         <p className="mt-2 max-w-lg font-grotesk text-[12px] leading-relaxed text-ink-soft">
-          Возраст, тон кожи и поза идут в генерацию модели, размер — в рекомендации по
-          каталогу. Всё необязательно, но чем точнее, тем ближе результат.
+          Тип фигуры, возраст, тон кожи и поза идут в генерацию модели и примерку,
+          размер — в рекомендации по каталогу. Всё необязательно, но чем точнее, тем
+          ближе результат.
         </p>
 
         <div className="mt-6 flex flex-col gap-6">
+          <fieldset>
+            <legend className={LEGEND}>Тип фигуры</legend>
+            <div className="flex flex-wrap gap-2">
+              {FIGURE_TYPES.map((option) => (
+                <Chip key={option.value} name="figure_type" value={option.value}>
+                  {option.label}
+                </Chip>
+              ))}
+            </div>
+          </fieldset>
+
           <fieldset>
             <legend className={LEGEND}>Возраст</legend>
             <div className="flex flex-wrap gap-2">

@@ -32,6 +32,7 @@ const profileFieldsSchema = z.object({
   skin_tone: optionalTrimmed,
   clothing_size: optionalTrimmed,
   pose: optionalTrimmed,
+  figure_type: optionalTrimmed,
 });
 
 const PHOTO_MIME_TO_EXT: Record<string, string> = {
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
     skin_tone: formData.get("skin_tone"),
     clothing_size: formData.get("clothing_size"),
     pose: formData.get("pose"),
+    figure_type: formData.get("figure_type"),
   });
 
   if (!fieldsResult.success) {
@@ -84,7 +86,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const { height_cm, weight_kg, body_type, gender, age_range, skin_tone, clothing_size, pose } = fieldsResult.data;
+  const { height_cm, weight_kg, body_type, gender, age_range, skin_tone, clothing_size, pose, figure_type } =
+    fieldsResult.data;
 
   // Фото необязательно (см. Этап 5 плана: у пользователя может не быть фото,
   // тогда модель генерируется отдельно через FASHN). Отсутствие файла — это
@@ -121,6 +124,7 @@ export async function POST(request: Request) {
         ageRange: age_range,
         skinTone: skin_tone,
         pose,
+        figureType: figure_type,
       });
       photoPath = await downloadGeneratedModel(generatedUrl);
     } catch (err) {
@@ -143,6 +147,7 @@ export async function POST(request: Request) {
       skinTone: skin_tone ?? null,
       clothingSize: clothing_size ?? null,
       pose: pose ?? null,
+      figureType: figure_type ?? null,
     })
     .returning();
 
