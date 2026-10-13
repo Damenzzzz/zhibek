@@ -2,11 +2,12 @@ import "server-only";
 import { GoogleGenAI } from "@google/genai";
 import { db } from "./db";
 import { creditUsage } from "./schema";
+import { estimateGeminiCost, logAiUsage, type GeminiUsageMetadata } from "./aiUsage";
 
 // Виртуальная примерка на Gemini 3 Pro Image ("Nano Banana Pro" / "nano banana 2").
 // В отличие от FASHN (последовательная цепочка из 3-4 вызовов на образ) здесь
 // вся одежда и аксессуары накладываются за ОДИН вызов генерации — это и дешевле
-// (одна генерация ≈ $0.067), и качественнее (модель видит весь образ целиком и
+// (одна генерация ≈ $0.134 на Pro в 1K/2K, см. lib/aiUsage.ts), и качественнее (модель видит весь образ целиком и
 // не «затирает» предыдущие вещи следующим шагом).
 //
 // Генерация модели по анкете (для пользователей без фото) осталась на FASHN —
@@ -29,7 +30,7 @@ const FALLBACK_MODEL = "gemini-2.5-flash-image";
 const MODEL_CHAIN = [MODEL, FALLBACK_MODEL] as const;
 
 // Nano Banana Pro тарифицирует картинку по числу выходных токенов: 1K и 2K —
-// это стандартный тариф (≈ $0.067/шт), 4K — дороже. 1K (≈1024×1365 для 3:4)
+// это стандартный тариф (≈ $0.134/шт, см. lib/aiUsage.ts), 4K — дороже. 1K (≈1024×1365 для 3:4)
 // генерируется заметно БЫСТРЕЕ 2K при том же тарифе и для просмотра в вебе
 // неотличим по качеству — поэтому берём его (примерка перестаёт упираться в
 // таймаут serverless-функции). Поставь "2K", если нужен максимум деталей и не
@@ -298,6 +299,7 @@ export async function tryOnWithGemini(
   // сверху), поэтому запрос не может «залипнуть» дольше отведённого бюджета.
   async function attempt(signal: AbortSignal, model: string): Promise<Buffer> {
     let response;
+    const startedAt = Date.now();
     try {
       response = await ai.models.generateContent({
         model,
@@ -309,6 +311,15 @@ export async function tryOnWithGemini(
         },
       });
     } catch (err) {
+      // Ответа нет — Google такой запрос не тарифицирует, но пишем его в
+      // учёт: частые 429/503 — сигнал, что упёрлись в лимит/квоту.
+      await logAiUsage({
+        model,
+        purpose: "tryon",
+        status: "error",
+        errorCode: String(errorStatus(err) ?? (signal.aborted ? "timeout" : "network")),
+        latencyMs: Date.now() - startedAt,
+      });
       // Прерывание по нашему дедлайну приходит как AbortError — трактуем как
       // транзиентный таймаут генерации (ретраится, если в бюджете есть время).
       const aborted = signal.aborted || (err instanceof Error && err.name === "AbortError");
@@ -335,15 +346,29 @@ export async function tryOnWithGemini(
     }
 
     const parts = response.candidates?.[0]?.content?.parts ?? [];
-    for (const part of parts) {
-      if (part.inlineData?.data) {
-        return Buffer.from(part.inlineData.data, "base64");
-      }
+    const imagePart = parts.find((part) => part.inlineData?.data);
+    const blockReason = response.promptFeedback?.blockReason;
+    // Ответ получен — значит, Google выставит счёт за токены (даже если
+    // картинки нет). Пишем реальные токены из usageMetadata.
+    const cost = estimateGeminiCost(
+      model,
+      response.usageMetadata as GeminiUsageMetadata | undefined,
+      Boolean(imagePart)
+    );
+    await logAiUsage({
+      model,
+      purpose: "tryon",
+      status: imagePart ? "success" : blockReason ? "blocked" : "empty",
+      errorCode: blockReason ? String(blockReason) : null,
+      latencyMs: Date.now() - startedAt,
+      ...cost,
+    });
+    if (imagePart?.inlineData?.data) {
+      return Buffer.from(imagePart.inlineData.data, "base64");
     }
 
     // Изображения нет — либо блокировка модерацией (её повтор не исправит), либо
     // пустой/флаки-ответ (повтор помогает). Отдаём внятную ошибку.
-    const blockReason = response.promptFeedback?.blockReason;
     const textNote = parts.find((p) => p.text)?.text;
     throw new GeminiApiError(
       blockReason ? "ContentBlocked" : "EmptyOutput",

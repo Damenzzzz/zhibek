@@ -3,6 +3,7 @@ import { Prata, Golos_Text } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
 // Пара на весь сайт: Prata — контрастная антиква дидоновского толка, живёт
 // только на крупном кегле (единственное начертание 400, font-semibold к ней
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />
+        <AnalyticsTracker />
       </body>
     </html>
   );
