@@ -7,6 +7,7 @@ import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
 import { Carousel } from "@/components/tryon/Carousel";
+import { getVisitorId, track } from "@/lib/analytics";
 
 // Клиентский предохранитель: если сервер вообще не ответит, не виснем
 // бесконечно. Примерка — один вызов Gemini в 1K (обычно ~15–40 сек, см.
@@ -285,6 +286,12 @@ export function TryonForm({
   );
   const [selectedLookId, setSelectedLookId] = useState<string | null>(null);
 
+  // Пришёл из примерочной/каталога с уже выбранными вещами — это тоже шаг
+  // воронки «выбрал образ».
+  useEffect(() => {
+    if (hasPreselect) track("look_selected");
+  }, [hasPreselect]);
+
   // Якорь для рекомендаций "Дополните образ" — первая выбранная вещь любой
   // категории. Пока ничего не выбрано (свежий заход без предвыбора), anchor
   // остаётся null — и блок ниже явно показывает подсказку вместо того, чтобы
@@ -342,21 +349,25 @@ export function TryonForm({
   const limitReached = usage !== null && usage.remaining <= 0;
 
   function toggleTop(id: string) {
+    track("look_selected");
     setTopId((current) => (current === id ? null : id));
     setResult(null);
   }
 
   function toggleBottom(id: string) {
+    track("look_selected");
     setBottomId((current) => (current === id ? null : id));
     setResult(null);
   }
 
   function toggleShoes(id: string) {
+    track("look_selected");
     setShoesId((current) => (current === id ? null : id));
     setResult(null);
   }
 
   function toggleBag(id: string) {
+    track("look_selected");
     setBagId((current) => (current === id ? null : id));
     setResult(null);
   }
@@ -376,7 +387,7 @@ export function TryonForm({
       const response = await fetch("/api/tryon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: profile.id, ...payload }),
+        body: JSON.stringify({ userId: profile.id, visitorId: getVisitorId(), ...payload }),
         signal: controller.signal,
       });
       const data = await response.json();
@@ -412,6 +423,7 @@ export function TryonForm({
   function handleTryOnLook() {
     if (!selectedLook) return;
     runTryOn({
+      lookId: selectedLook.lookId,
       outerwearItemId: selectedLook.outerwearId,
       topItemId: selectedLook.topId,
       bottomItemId: selectedLook.bottomId,
@@ -520,6 +532,7 @@ export function TryonForm({
                 selected={selectedLookId === look.lookId}
                 onClick={() => {
                   setSelectedLookId(look.lookId);
+                  track("look_selected", { lookId: look.lookId });
                   setResult(null);
                 }}
               />
