@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { CATEGORIES, CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl, catalogImageUrls } from "@/lib/catalogDisplay";
+import { StatsTab } from "./StatsTab";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Типы (совпадают с ответами /api/admin/*).
@@ -41,7 +42,7 @@ const BTN_GHOST =
 const BTN_DANGER =
   "inline-flex items-center justify-center border border-red-400 px-4 py-2 font-grotesk text-[11px] uppercase tracking-[0.14em] text-red-600 transition-colors hover:bg-red-50";
 
-type Tab = "items" | "looks";
+type Tab = "items" | "looks" | "stats";
 
 // ────────────────────────────────────────────────────────────────────────────
 export function AdminApp() {
@@ -119,7 +120,7 @@ export function AdminApp() {
         <div>
           <span className="tag text-ink-soft">админка</span>
           <h1 className="mt-3 font-display text-[clamp(1.75rem,5vw,3rem)] uppercase leading-[0.95] tracking-[-0.02em]">
-            Каталог
+            {tab === "stats" ? "Статистика" : "Каталог"}
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -150,6 +151,7 @@ export function AdminApp() {
           [
             ["items", "Одежда"],
             ["looks", "Образы"],
+            ["stats", "Статистика"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -168,8 +170,10 @@ export function AdminApp() {
 
       {tab === "items" ? (
         <ItemsTab items={items} looks={looks} reload={loadData} notify={notify} />
-      ) : (
+      ) : tab === "looks" ? (
         <LooksTab items={items} looks={looks} reload={loadData} notify={notify} />
+      ) : (
+        <StatsTab notify={notify} />
       )}
     </div>
   );

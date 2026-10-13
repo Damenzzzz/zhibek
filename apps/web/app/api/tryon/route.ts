@@ -7,6 +7,7 @@ import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { tryOnWithGemini, GeminiApiError, type TryOnGarments } from "@/lib/gemini";
 import { saveUpload } from "@/lib/storage";
 import { getTryonUsage, hashRequestIp, TRYON_DAILY_LIMIT } from "@/lib/tryonLimit";
+import { normalizeVisitorId, recordEvent } from "@/lib/analyticsServer";
 
 // Примерка = один вызов Gemini image-генерации (обычно 15–40 c, с холодным
 // стартом/ретраем — дольше). По умолчанию serverless-функция Vercel обрывается
@@ -18,6 +19,10 @@ export const maxDuration = 300;
 const bodySchema = z
   .object({
     userId: z.string().min(1),
+    // Анонимный id посетителя (lib/analytics.ts) — для воронки в админке.
+    visitorId: z.string().max(64).nullish(),
+    // Готовый образ (режим «полный образ») — для топа образов в админке.
+    lookId: z.string().min(1).max(64).nullish(),
     // outerwearItemId нужен для «полного образа»: жилет/жакет надевается
     // ПОВЕРХ верха (блузки/рубашки) — это отдельный слот, а не альтернатива
     // топу. В режиме «по частям» он не передаётся (там верх+верхняя одежда в
@@ -60,6 +65,8 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "user_not_found", message: "Профиль не найден" }, { status: 404 });
   }
+  // Для старых клиентов без трекера берём visitorId из анкеты.
+  const visitorId = normalizeVisitorId(parsed.data.visitorId) ?? user.visitorId;
   if (!user.photoPath) {
     return NextResponse.json(
       { error: "no_model_photo", message: "В профиле нет фото для примерки — заполни анкету заново" },
@@ -115,6 +122,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "item_not_found", message: `Товар ${bagItemId} не найден` }, { status: 404 });
   }
 
+  // Образ засчитываем, только если хотя бы одна вещь действительно из него —
+  // иначе в топ «чаще примеряют» можно было бы записать что угодно.
+  const chosenItems = [outerwearItem, topItem, bottomItem, shoesItem, bagItem].filter(Boolean);
+  const lookId =
+    parsed.data.lookId && chosenItems.some((i) => i?.lookId === parsed.data.lookId) ? parsed.data.lookId : null;
+
   const origin = request.nextUrl.origin;
   // photoPath — либо локальный относительный путь (/uploads/...), либо уже
   // полный URL Vercel Blob (см. lib/storage.ts) — на проде абсолютные URL
@@ -165,8 +178,11 @@ export async function POST(request: NextRequest) {
         bagItemId: bagItem?.id ?? null,
         resultImagePath: resultUrl,
         ipHash,
+        lookId,
       })
       .returning();
+
+    await recordEvent(visitorId, "tryon_done", { lookId, meta: { userId } });
 
     // Эта примерка только что записана в историю — уменьшаем остаток на 1,
     // чтобы фронт сразу показал актуальное «осталось сегодня».
