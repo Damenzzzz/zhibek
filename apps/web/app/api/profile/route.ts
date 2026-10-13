@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/schema";
 import { generateModelFromDescription, FashnApiError } from "@/lib/fashn";
 import { saveUpload } from "@/lib/storage";
+import { normalizeVisitorId, recordEvent } from "@/lib/analyticsServer";
 
 // Ветка «нет фото» генерирует модель через FASHN model-create и поллит статус
 // до ~2.5 мин (POLL_TIMEOUT_MS в lib/fashn.ts). Без явного лимита serverless-
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
   // тогда модель генерируется отдельно через FASHN). Отсутствие файла — это
   // не ошибка. Но если файл прислан и он не картинка — это отдельная ошибка,
   // не связанная с текстовыми полями анкеты.
+  const visitorId = normalizeVisitorId(formData.get("visitor_id"));
   const photo = formData.get("photo");
   const noPhoto = formData.get("no_photo") === "true";
   let photoPath: string | null = null;
@@ -148,8 +150,16 @@ export async function POST(request: Request) {
       clothingSize: clothing_size ?? null,
       pose: pose ?? null,
       figureType: figure_type ?? null,
+      visitorId,
     })
     .returning();
+
+  // Шаг воронки «загрузил фото»: своё фото или сгенерированная модель.
+  if (photoPath) {
+    await recordEvent(visitorId, "profile_created", {
+      meta: { photo: noPhoto ? "generated" : "upload", userId: user.id },
+    });
+  }
 
   return NextResponse.json({ user }, { status: 201 });
 }

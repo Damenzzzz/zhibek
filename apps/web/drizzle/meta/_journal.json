@@ -50,6 +50,13 @@
       "when": 1789852872540,
       "tag": "0006_wild_lifeguard",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791868800000,
+      "tag": "0007_admin_stats",
+      "breakpoints": true
     }
   ]
 }

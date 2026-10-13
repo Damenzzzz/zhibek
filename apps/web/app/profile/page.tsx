@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { PROFILE_STORAGE_KEY, type StoredProfile } from "@/lib/profileStorage";
+import { getVisitorId } from "@/lib/analytics";
 
 // Клиентский предохранитель поверх серверного poll-таймаута FASHN (3 минуты,
 // см. lib/fashn.ts) — если сервер вообще не ответит, не виснем бесконечно.
@@ -113,6 +114,9 @@ function ProfileForm() {
     } else {
       formData.delete("no_photo");
     }
+
+    // Связывает анкету с воронкой в админ-статистике (lib/analytics.ts).
+    formData.set("visitor_id", getVisitorId());
 
     setStatus(noPhoto ? "generating" : "saving");
 
