@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
+import { DataConsent } from "@/components/DataConsent";
+import { PRIVACY_VERSION } from "@/lib/privacy";
+import { hasAnalyticsConsent } from "@/lib/privacyStorage";
+import { cn } from "@/lib/utils";
 import { GenerationNotice } from "@/components/GenerationNotice";
 import { Carousel } from "@/components/tryon/Carousel";
 import { getVisitorId, track } from "@/lib/analytics";
@@ -52,7 +56,8 @@ function itemsPlural(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
   if (mod10 === 1 && mod100 !== 11) return `${n} вещь`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} вещи`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20))
+    return `${n} вещи`;
   return `${n} вещей`;
 }
 
@@ -81,7 +86,9 @@ function ItemThumb({
       <div
         className={
           "relative aspect-[3/4] overflow-hidden bg-canvas-2 transition-all duration-300 " +
-          (selected ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas" : "ring-1 ring-hair-ink")
+          (selected
+            ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas"
+            : "ring-1 ring-hair-ink")
         }
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -116,17 +123,28 @@ function LookCardButton({
 }) {
   const [src, setSrc] = useState(look.cover);
   return (
-    <button type="button" onClick={onClick} aria-pressed={selected} className="group text-left">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className="group text-left"
+    >
       <div
         className={
           "relative aspect-[3/4] overflow-hidden bg-canvas-2 transition-all duration-300 " +
-          (selected ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas" : "ring-1 ring-hair-ink")
+          (selected
+            ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas"
+            : "ring-1 ring-hair-ink")
         }
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
-          onError={() => setSrc((cur) => (cur === look.fallbackImage ? cur : look.fallbackImage))}
+          onError={() =>
+            setSrc((cur) =>
+              cur === look.fallbackImage ? cur : look.fallbackImage,
+            )
+          }
           alt={`Готовый образ ${look.lookId}`}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
@@ -164,14 +182,24 @@ const POSE_LABELS: Record<string, string> = {
   motion: "В движении",
 };
 
-function ProfileSummary({ profile }: { profile: StoredProfile }) {
+function ProfileSummary({
+  profile,
+  editHref,
+}: {
+  profile: StoredProfile;
+  editHref: string;
+}) {
   const badges = [
     `${profile.heightCm} см`,
     `${profile.weightKg} кг`,
-    profile.ageRange ? AGE_RANGE_LABELS[profile.ageRange] ?? profile.ageRange : null,
-    profile.skinTone ? SKIN_TONE_LABELS[profile.skinTone] ?? profile.skinTone : null,
+    profile.ageRange
+      ? (AGE_RANGE_LABELS[profile.ageRange] ?? profile.ageRange)
+      : null,
+    profile.skinTone
+      ? (SKIN_TONE_LABELS[profile.skinTone] ?? profile.skinTone)
+      : null,
     profile.clothingSize ? `Размер ${profile.clothingSize}` : null,
-    profile.pose ? POSE_LABELS[profile.pose] ?? profile.pose : null,
+    profile.pose ? (POSE_LABELS[profile.pose] ?? profile.pose) : null,
   ].filter((b): b is string => Boolean(b));
 
   // photoPath заполняется и загруженным фото, и сгенерированной моделью
@@ -182,7 +210,11 @@ function ProfileSummary({ profile }: { profile: StoredProfile }) {
       <span className="relative h-14 w-11 shrink-0 overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
         {profile.photoPath ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.photoPath} alt="Модель для примерки" className="h-full w-full object-cover" />
+          <img
+            src={profile.photoPath}
+            alt="Модель для примерки"
+            className="h-full w-full object-cover"
+          />
         ) : null}
       </span>
       {badges.map((badge) => (
@@ -194,7 +226,7 @@ function ProfileSummary({ profile }: { profile: StoredProfile }) {
         </span>
       ))}
       <Link
-        href="/profile"
+        href={editHref}
         className="font-grotesk text-[10px] uppercase tracking-[0.2em] text-clay transition-colors hover:text-ink"
       >
         Изменить анкету
@@ -216,7 +248,12 @@ function ResultImage({ src, alt }: { src: string; alt: string }) {
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} onError={() => setFailed(true)} className="h-full w-full object-cover" />
+    <img
+      src={src}
+      alt={alt}
+      onError={() => setFailed(true)}
+      className="h-full w-full object-cover"
+    />
   );
 }
 
@@ -263,12 +300,28 @@ export function TryonForm({
 }) {
   const profile = useStoredProfile();
   const searchParams = useSearchParams();
+  const returnTo = `/tryon${searchParams.size ? `?${searchParams}` : ""}`;
+  const profileHref = `/profile?returnTo=${encodeURIComponent(returnTo)}`;
+  const [dataConsent, setDataConsent] = useState(false);
+  const consentAccepted =
+    profile?.dataConsentVersion === PRIVACY_VERSION || dataConsent;
+  const [outerwearId, setOuterwearId] = useState<string | null>(() =>
+    searchParams.get("outerwear"),
+  );
   // Примерочная (см. app/fitting-room) может передать сюда предвыбор через
   // ?top=/?bottom= — читаем один раз при монтировании.
-  const [topId, setTopId] = useState<string | null>(() => searchParams.get("top"));
-  const [bottomId, setBottomId] = useState<string | null>(() => searchParams.get("bottom"));
-  const [shoesId, setShoesId] = useState<string | null>(() => searchParams.get("shoes"));
-  const [bagId, setBagId] = useState<string | null>(() => searchParams.get("bag"));
+  const [topId, setTopId] = useState<string | null>(() =>
+    searchParams.get("top"),
+  );
+  const [bottomId, setBottomId] = useState<string | null>(() =>
+    searchParams.get("bottom"),
+  );
+  const [shoesId, setShoesId] = useState<string | null>(() =>
+    searchParams.get("shoes"),
+  );
+  const [bagId, setBagId] = useState<string | null>(() =>
+    searchParams.get("bag"),
+  );
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TryonResult | null>(null);
@@ -276,33 +329,47 @@ export function TryonForm({
   const [history, setHistory] = useState<TryonResult[] | null>(null);
   // Остаток суточного лимита примерок (профиль + IP, считается на сервере,
   // см. lib/tryonLimit.ts). null — ещё не загрузили.
-  const [usage, setUsage] = useState<{ limit: number; remaining: number } | null>(null);
+  const [usage, setUsage] = useState<{
+    limit: number;
+    remaining: number;
+  } | null>(null);
   // Режим примерки: «полный образ» (комплект целиком) или «по частям».
   // Если пришли из примерочной с предвыбором вещей — сразу «по частям».
   const hasPreselect = Boolean(
-    searchParams.get("top") || searchParams.get("bottom") || searchParams.get("shoes") || searchParams.get("bag")
+    searchParams.get("outerwear") ||
+      searchParams.get("top") ||
+      searchParams.get("bottom") ||
+      searchParams.get("shoes") ||
+      searchParams.get("bag"),
   );
   const [mode, setMode] = useState<"full" | "pieces">(
-    hasPreselect || looks.length === 0 ? "pieces" : "full"
+    hasPreselect || looks.length === 0 ? "pieces" : "full",
   );
-  const [selectedLookId, setSelectedLookId] = useState<string | null>(null);
+  const [selectedLookId, setSelectedLookId] = useState<string | null>(() =>
+    looks.some((look) => look.lookId === searchParams.get("look"))
+      ? searchParams.get("look")
+      : null,
+  );
 
   // Пришёл из примерочной/каталога с уже выбранными вещами — это тоже шаг
   // воронки «выбрал образ».
   useEffect(() => {
-    if (hasPreselect) track("look_selected");
-  }, [hasPreselect]);
+    if (hasPreselect || searchParams.get("look"))
+      track("look_selected", { lookId: searchParams.get("look") });
+  }, [hasPreselect, searchParams]);
 
   // Якорь для рекомендаций "Дополните образ" — первая выбранная вещь любой
   // категории. Пока ничего не выбрано (свежий заход без предвыбора), anchor
   // остаётся null — и блок ниже явно показывает подсказку вместо того, чтобы
   // тихо пропасть (это и была причина жалобы "не работает" — см. план).
-  const anchorId = topId ?? bottomId ?? shoesId ?? bagId;
+  const anchorId = topId ?? outerwearId ?? bottomId ?? shoesId ?? bagId;
 
   useEffect(() => {
     let cancelled = false;
     const request = anchorId
-      ? fetch(`/api/catalog/${anchorId}/matches`).then((res) => res.json()).then((data) => data.items ?? [])
+      ? fetch(`/api/catalog/${anchorId}/matches`)
+          .then((res) => res.json())
+          .then((data) => data.items ?? [])
       : Promise.resolve([]);
 
     request
@@ -321,13 +388,15 @@ export function TryonForm({
   useEffect(() => {
     let cancelled = false;
     const request = profile
-      ? fetch(`/api/tryon/history?userId=${profile.id}`).then((res) => res.json())
+      ? fetch(`/api/tryon/history?userId=${profile.id}`).then((res) =>
+          res.json(),
+        )
       : Promise.resolve(null);
 
     request
       .then((data) => {
         if (cancelled) return;
-        setHistory(data ? data.items ?? [] : null);
+        setHistory(data ? (data.items ?? []) : null);
         if (data?.usage) setUsage(data.usage);
       })
       .catch(() => {
@@ -339,17 +408,35 @@ export function TryonForm({
     };
   }, [profile]);
 
-  const selectedIds = new Set([topId, bottomId, shoesId, bagId].filter(Boolean));
+  const selectedIds = new Set(
+    [outerwearId, topId, bottomId, shoesId, bagId].filter(Boolean),
+  );
   const visibleMatches = matches.filter((item) => !selectedIds.has(item.id));
   const selectedCount = selectedIds.size;
 
   const selectedLook = looks.find((l) => l.lookId === selectedLookId) ?? null;
+  const currentSelection = new URLSearchParams();
+  if (mode === "full" && selectedLook)
+    currentSelection.set("look", selectedLook.lookId);
+  else
+    for (const [slot, id] of Object.entries({
+      outerwear: outerwearId,
+      top: topId,
+      bottom: bottomId,
+      shoes: shoesId,
+      bag: bagId,
+    })) {
+      if (id) currentSelection.set(slot, id);
+    }
+  const editHref = `/profile?returnTo=${encodeURIComponent(`/tryon${currentSelection.size ? `?${currentSelection}` : ""}`)}`;
 
   // Суточный лимит исчерпан — блокируем кнопки примерки (сервер всё равно
   // вернёт 429, но так пользователь видит причину сразу).
   const limitReached = usage !== null && usage.remaining <= 0;
 
   function toggleTop(id: string) {
+    if (tops.find((item) => item.id === id)?.category === "outerwear")
+      setOuterwearId(null);
     track("look_selected");
     setTopId((current) => (current === id ? null : id));
     setResult(null);
@@ -376,7 +463,7 @@ export function TryonForm({
   // Общий вызов примерки. payload — набор *ItemId (верх/низ/обувь/сумка +
   // outerwearItemId для полного образа); userId дописывается здесь.
   async function runTryOn(payload: Record<string, string | null | undefined>) {
-    if (!profile) return;
+    if (!profile || !consentAccepted) return;
     setStatus("loading");
     setError(null);
     setResult(null);
@@ -388,7 +475,15 @@ export function TryonForm({
       const response = await fetch("/api/tryon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: profile.id, visitorId: getVisitorId(), ...payload }),
+        body: JSON.stringify({
+          userId: profile.id,
+          visitorId: getVisitorId(),
+          dataConsentVersion: PRIVACY_VERSION,
+          analyticsConsentVersion: hasAnalyticsConsent()
+            ? PRIVACY_VERSION
+            : null,
+          ...payload,
+        }),
         signal: controller.signal,
       });
       const data = await response.json();
@@ -408,7 +503,7 @@ export function TryonForm({
       setError(
         err instanceof DOMException && err.name === "AbortError"
           ? "Не дождались ответа от нейросети — попробуй ещё раз"
-          : "Не удалось связаться с сервером"
+          : "Не удалось связаться с сервером",
       );
       setStatus("idle");
     } finally {
@@ -417,8 +512,14 @@ export function TryonForm({
   }
 
   function handleTryOn() {
-    if (!topId && !bottomId && !shoesId && !bagId) return;
-    runTryOn({ topItemId: topId, bottomItemId: bottomId, shoesItemId: shoesId, bagItemId: bagId });
+    if (!outerwearId && !topId && !bottomId && !shoesId && !bagId) return;
+    runTryOn({
+      outerwearItemId: outerwearId,
+      topItemId: topId,
+      bottomItemId: bottomId,
+      shoesItemId: shoesId,
+      bagItemId: bagId,
+    });
   }
 
   function handleTryOnLook() {
@@ -447,7 +548,7 @@ export function TryonForm({
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <Link
-            href="/profile"
+            href={profileHref}
             className="group relative border border-hair-ink bg-canvas-2 p-6 transition-colors hover:border-ink"
           >
             <span className="font-display text-3xl text-clay">01</span>
@@ -463,7 +564,7 @@ export function TryonForm({
           </Link>
 
           <Link
-            href="/profile?model=generated"
+            href={`${profileHref}&model=generated`}
             className="group relative border border-clay bg-clay/5 p-6 transition-colors hover:bg-clay/10"
           >
             <span className="font-display text-3xl text-clay">02</span>
@@ -485,8 +586,31 @@ export function TryonForm({
 
   return (
     <div className="mt-8 flex flex-col gap-8">
+      <nav
+        aria-label="Этапы примерки"
+        className="grid grid-cols-3 gap-3 border-b border-hair-ink pb-6 text-xs"
+      >
+        {["Твоя модель", "Твой образ", "Результат"].map((label, index) => (
+          <span
+            key={label}
+            className={cn(
+              "flex items-center gap-2 text-ink-soft",
+              ((result && index === 2) || (!result && index === 1)) &&
+                "text-clay",
+            )}
+          >
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-hair-ink tabular-nums">
+              {index + 1}
+            </span>
+            {label}
+          </span>
+        ))}
+      </nav>
       <GenerationNotice />
-      <ProfileSummary profile={profile} />
+      {profile.dataConsentVersion !== PRIVACY_VERSION && (
+        <DataConsent checked={dataConsent} onChange={setDataConsent} />
+      )}
+      <ProfileSummary profile={profile} editHref={editHref} />
 
       {looks.length > 0 && (
         <div className="flex flex-wrap gap-2.5">
@@ -505,7 +629,9 @@ export function TryonForm({
               }}
               className={
                 "px-5 py-2.5 font-grotesk text-[11px] uppercase tracking-[0.18em] transition-colors " +
-                (mode === m ? "bg-espresso text-canvas" : "border border-hair-ink text-ink-soft hover:border-ink")
+                (mode === m
+                  ? "bg-espresso text-canvas"
+                  : "border border-hair-ink text-ink-soft hover:border-ink")
               }
             >
               {label}
@@ -521,8 +647,8 @@ export function TryonForm({
               Готовые образы · {looks.length}
             </p>
             <p className="mt-4 max-w-lg font-grotesk text-sm leading-relaxed text-ink-soft">
-              Выбери образ целиком — нейросеть наденет на тебя все вещи комплекта
-              за один раз: верх, верхнюю одежду, низ, обувь и сумку.
+              Выбери образ целиком — нейросеть наденет на тебя все вещи
+              комплекта за один раз: верх, верхнюю одежду, низ, обувь и сумку.
             </p>
           </div>
 
@@ -547,7 +673,8 @@ export function TryonForm({
                 Что в образе · {itemsPlural(selectedLook.items.length)}
               </p>
               <p className="mt-3 font-grotesk text-[13px] leading-relaxed text-ink-soft">
-                Нажми на любую вещь, чтобы открыть её карточку и рассмотреть отдельно.
+                Нажми на любую вещь, чтобы открыть её карточку и рассмотреть
+                отдельно.
               </p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {selectedLook.items.map((item) => (
@@ -564,11 +691,14 @@ export function TryonForm({
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       <span className="absolute left-0 top-0 bg-espresso px-2 py-1 font-grotesk text-[8px] uppercase tracking-[0.18em] text-canvas-dim">
-                        {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+                        {CATEGORY_LABELS[item.category as CatalogCategory] ??
+                          item.category}
                       </span>
                     </div>
                     <p className="mt-2 line-clamp-2 font-grotesk text-[11px] leading-tight text-ink transition-colors group-hover:text-clay">
-                      {item.description ?? CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+                      {item.description ??
+                        CATEGORY_LABELS[item.category as CatalogCategory] ??
+                        item.category}
                     </p>
                     <span className="mt-1 inline-block font-grotesk text-[9px] uppercase tracking-[0.2em] text-ink-soft transition-colors group-hover:text-clay">
                       к вещи →
@@ -582,7 +712,12 @@ export function TryonForm({
           <button
             type="button"
             onClick={handleTryOnLook}
-            disabled={!selectedLook || status === "loading" || limitReached}
+            disabled={
+              !selectedLook ||
+              status === "loading" ||
+              limitReached ||
+              !consentAccepted
+            }
             className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
             <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
@@ -597,9 +732,30 @@ export function TryonForm({
         </section>
       ) : (
         <>
+          {outerwearId && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hair-ink p-4 text-sm">
+              <span>
+                Второй слой:{" "}
+                {tops.find((item) => item.id === outerwearId)?.description ??
+                  "верхняя одежда"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setOuterwearId(null)}
+                className="min-h-9 text-xs text-clay underline"
+              >
+                Убрать второй слой
+              </button>
+            </div>
+          )}
           <Carousel title="Верх" count={tops.length}>
             {tops.map((item) => (
-              <ItemThumb key={item.id} item={item} selected={topId === item.id} onClick={() => toggleTop(item.id)} />
+              <ItemThumb
+                key={item.id}
+                item={item}
+                selected={topId === item.id}
+                onClick={() => toggleTop(item.id)}
+              />
             ))}
           </Carousel>
 
@@ -630,7 +786,12 @@ export function TryonForm({
           {bags.length > 0 && (
             <Carousel title="Сумки" count={bags.length}>
               {bags.map((item) => (
-                <ItemThumb key={item.id} item={item} selected={bagId === item.id} onClick={() => toggleBag(item.id)} />
+                <ItemThumb
+                  key={item.id}
+                  item={item}
+                  selected={bagId === item.id}
+                  onClick={() => toggleBag(item.id)}
+                />
               ))}
             </Carousel>
           )}
@@ -649,7 +810,11 @@ export function TryonForm({
           ) : (
             <Carousel title="Дополните образ" count={visibleMatches.length}>
               {visibleMatches.map((item) => (
-                <Link key={item.id} href={`/catalog/${item.id}`} className="group w-24 shrink-0 sm:w-28">
+                <Link
+                  key={item.id}
+                  href={`/catalog/${item.id}`}
+                  className="group w-24 shrink-0 sm:w-28"
+                >
                   <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -659,7 +824,8 @@ export function TryonForm({
                     />
                   </div>
                   <p className="mt-2 font-grotesk text-[10px] uppercase tracking-[0.12em] text-ink-soft">
-                    {CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category}
+                    {CATEGORY_LABELS[item.category as CatalogCategory] ??
+                      item.category}
                   </p>
                 </Link>
               ))}
@@ -669,7 +835,12 @@ export function TryonForm({
           <button
             type="button"
             onClick={handleTryOn}
-            disabled={selectedCount === 0 || status === "loading" || limitReached}
+            disabled={
+              selectedCount === 0 ||
+              status === "loading" ||
+              limitReached ||
+              !consentAccepted
+            }
             className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
             <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
@@ -691,12 +862,27 @@ export function TryonForm({
       )}
 
       {error && (
-        <p className="border-l-2 border-clay bg-clay/5 px-4 py-3 font-grotesk text-sm text-ink">{error}</p>
+        <p
+          role="alert"
+          className="rounded-xl border-l-2 border-clay bg-clay/5 px-4 py-3 font-grotesk text-sm text-ink"
+        >
+          {error}
+        </p>
       )}
 
       {status === "loading" && (
-        <section className="border-t border-hair-ink pt-8">
-          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">Результат</p>
+        <section
+          role="status"
+          aria-live="polite"
+          className="border-t border-hair-ink pt-8"
+        >
+          <p className="mb-4 text-sm leading-relaxed text-ink-soft">
+            Создаём твой образ. Обычно это занимает 15–40 секунд; при высокой
+            нагрузке — дольше. Не закрывай эту страницу.
+          </p>
+          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+            Результат
+          </p>
           <div className="mt-4 grid max-w-2xl grid-cols-2 gap-4">
             <div className="aspect-[3/4] animate-pulse bg-canvas-2 ring-1 ring-hair-ink" />
             <div className="aspect-[3/4] animate-pulse bg-canvas-2 ring-1 ring-hair-ink" />
@@ -706,7 +892,9 @@ export function TryonForm({
 
       {result && status === "idle" && (
         <section className="animate-fade-in-up border-t border-hair-ink pt-8">
-          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">Результат</p>
+          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+            Результат
+          </p>
           <div className="mt-4 grid max-w-2xl grid-cols-2 gap-4">
             <div>
               <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
@@ -718,7 +906,10 @@ export function TryonForm({
             </div>
             <div>
               <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-clay">
-                <ResultImage src={result.resultImagePath} alt="После примерки" />
+                <ResultImage
+                  src={result.resultImagePath}
+                  alt="После примерки"
+                />
               </div>
               <p className="mt-2 text-center font-grotesk text-[10px] uppercase tracking-[0.24em] text-clay">
                 После
@@ -727,7 +918,9 @@ export function TryonForm({
           </div>
           <button
             type="button"
-            onClick={() => downloadImage(result.resultImagePath, "silk-tryon.jpg")}
+            onClick={() =>
+              downloadImage(result.resultImagePath, "smart-fashion-tryon.jpg")
+            }
             className="mt-6 border border-hair-ink px-8 py-3.5 font-grotesk text-[12px] uppercase tracking-[0.16em] text-ink transition-colors hover:border-ink"
           >
             Скачать
@@ -743,7 +936,10 @@ export function TryonForm({
             </p>
             <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto pb-1">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="aspect-[3/4] w-24 shrink-0 animate-pulse bg-canvas-2 sm:w-28" />
+                <div
+                  key={i}
+                  className="aspect-[3/4] w-24 shrink-0 animate-pulse bg-canvas-2 sm:w-28"
+                />
               ))}
             </div>
           </>
@@ -762,14 +958,24 @@ export function TryonForm({
               <button
                 key={entry.id}
                 type="button"
-                onClick={() => downloadImage(entry.resultImagePath, "silk-tryon.jpg")}
+                onClick={() =>
+                  downloadImage(
+                    entry.resultImagePath,
+                    "smart-fashion-tryon.jpg",
+                  )
+                }
                 className="group w-24 shrink-0 text-left sm:w-28"
                 title="Скачать"
               >
                 <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink transition-all group-hover:ring-clay">
-                  <ResultImage src={entry.resultImagePath} alt={`Примерка от ${formatDate(entry.createdAt)}`} />
+                  <ResultImage
+                    src={entry.resultImagePath}
+                    alt={`Примерка от ${formatDate(entry.createdAt)}`}
+                  />
                 </div>
-                <p className="mt-2 font-grotesk text-[10px] text-ink-soft">{formatDate(entry.createdAt)}</p>
+                <p className="mt-2 font-grotesk text-[10px] text-ink-soft">
+                  {formatDate(entry.createdAt)}
+                </p>
               </button>
             ))}
           </Carousel>
