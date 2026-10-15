@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { PRIVACY_VERSION } from "@/lib/privacy";
 import { db } from "@/lib/db";
 import { generatedModels, users } from "@/lib/schema";
 import { generateModelFromDescription, FashnApiError } from "@/lib/fashn";
@@ -18,11 +20,14 @@ export const maxDuration = 300;
 // users.ageRange и т.д. nullable). formData.get() отдаёт null для
 // отсутствующего поля (а не undefined), поэтому явно принимаем оба варианта;
 // пустая строка тоже приводится к undefined, чтобы не писать "" в БД.
-const optionalTrimmed = z.union([z.string(), z.null()]).optional().transform((v) => {
-  if (typeof v !== "string") return undefined;
-  const trimmed = v.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-});
+const optionalTrimmed = z
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((v) => {
+    if (typeof v !== "string") return undefined;
+    const trimmed = v.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  });
 
 const profileFieldsSchema = z.object({
   height_cm: z.coerce.number().int().min(50).max(250),
@@ -45,9 +50,13 @@ const PHOTO_MIME_TO_EXT: Record<string, string> = {
 async function downloadGeneratedModel(imageUrl: string): Promise<string> {
   const response = await fetch(imageUrl);
   if (!response.ok) {
-    throw new FashnApiError("ModelDownloadFailed", "Не удалось скачать сгенерированную модель");
+    throw new FashnApiError(
+      "ModelDownloadFailed",
+      "Не удалось скачать сгенерированную модель",
+    );
   }
-  const contentType = response.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
+  const contentType =
+    response.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
   const ext = PHOTO_MIME_TO_EXT[contentType] ?? "jpg";
   const buffer = Buffer.from(await response.arrayBuffer());
   return saveUpload(buffer, ext, contentType);
@@ -60,7 +69,20 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       { error: "invalid_body", message: "Ожидается multipart/form-data" },
-      { status: 400 }
+      { status: 400 },
+    );
+  }
+
+  if (
+    formData.get("data_consent") !== "true" ||
+    formData.get("data_consent_version") !== PRIVACY_VERSION
+  ) {
+    return NextResponse.json(
+      {
+        error: "consent_required",
+        message: "Перед отправкой анкеты нужно согласие на обработку данных",
+      },
+      { status: 400 },
     );
   }
 
@@ -83,24 +105,46 @@ export async function POST(request: Request) {
         message: "Проверь анкету: рост/вес/телосложение/пол",
         details: z.treeifyError(fieldsResult.error),
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  const { height_cm, weight_kg, body_type, gender, age_range, skin_tone, clothing_size, pose, figure_type } =
-    fieldsResult.data;
+  const {
+    height_cm,
+    weight_kg,
+    body_type,
+    gender,
+    age_range,
+    skin_tone,
+    clothing_size,
+    pose,
+    figure_type,
+  } = fieldsResult.data;
 
   // Фото необязательно (см. Этап 5 плана: у пользователя может не быть фото,
   // тогда модель генерируется отдельно через FASHN). Отсутствие файла — это
   // не ошибка. Но если файл прислан и он не картинка — это отдельная ошибка,
   // не связанная с текстовыми полями анкеты.
-  const visitorId = normalizeVisitorId(formData.get("visitor_id"));
+  const visitorId =
+    formData.get("analytics_consent_version") === PRIVACY_VERSION
+      ? normalizeVisitorId(formData.get("visitor_id"))
+      : null;
   const photo = formData.get("photo");
   const noPhoto = formData.get("no_photo") === "true";
   let photoPath: string | null = null;
   let generated = false;
+  let photoSource: "upload" | "generated" = "upload";
 
   if (photo instanceof File && photo.size > 0) {
+    if (photo.size > 4 * 1024 * 1024) {
+      return NextResponse.json(
+        {
+          error: "photo_too_large",
+          message: "Фото должно быть не больше 4 МБ",
+        },
+        { status: 400 },
+      );
+    }
     const ext = PHOTO_MIME_TO_EXT[photo.type];
     if (!ext) {
       return NextResponse.json(
@@ -108,7 +152,7 @@ export async function POST(request: Request) {
           error: "invalid_photo",
           message: "Фото должно быть в формате JPEG, PNG или WebP",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const buffer = Buffer.from(await photo.arrayBuffer());
@@ -116,27 +160,60 @@ export async function POST(request: Request) {
   } else if (photo !== null && !(photo instanceof File)) {
     return NextResponse.json(
       { error: "invalid_photo", message: "Поле photo должно быть файлом" },
-      { status: 400 }
+      { status: 400 },
     );
   } else if (noPhoto) {
     // Переключатель "у меня нет фото" — генерируем модель по описанию через
     // FASHN (платный вызов) и пересохраняем результат локально, чтобы photoPath
     // всегда указывал на наш /uploads, независимо от источника фото.
     try {
-      const generatedUrl = await generateModelFromDescription(height_cm, weight_kg, body_type, gender, {
-        ageRange: age_range,
-        skinTone: skin_tone,
-        pose,
-        figureType: figure_type,
-      });
+      const generatedUrl = await generateModelFromDescription(
+        height_cm,
+        weight_kg,
+        body_type,
+        gender,
+        {
+          ageRange: age_range,
+          skinTone: skin_tone,
+          pose,
+          figureType: figure_type,
+        },
+      );
       photoPath = await downloadGeneratedModel(generatedUrl);
       generated = true;
+      photoSource = "generated";
     } catch (err) {
       if (err instanceof FashnApiError) {
-        return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });
+        return NextResponse.json(
+          { error: err.code, message: err.message },
+          { status: 502 },
+        );
       }
       throw err;
     }
+  } else if (typeof formData.get("reuse_profile_id") === "string") {
+    const id = String(formData.get("reuse_profile_id"));
+    const [previous] =
+      id.length <= 64
+        ? await db.select().from(users).where(eq(users.id, id))
+        : [];
+    if (!previous?.photoPath) {
+      return NextResponse.json(
+        {
+          error: "photo_unavailable",
+          message:
+            "Прошлое фото недоступно. Добавь новое фото или создай модель.",
+        },
+        { status: 400 },
+      );
+    }
+    photoPath = previous.photoPath;
+    const [model] = await db
+      .select({ id: generatedModels.id })
+      .from(generatedModels)
+      .where(eq(generatedModels.imagePath, photoPath))
+      .limit(1);
+    if (model) photoSource = "generated";
   }
 
   const user = await db.transaction(async (tx) => {
@@ -154,10 +231,14 @@ export async function POST(request: Request) {
         pose: pose ?? null,
         figureType: figure_type ?? null,
         visitorId,
+        dataConsentVersion: PRIVACY_VERSION,
+        dataConsentAt: new Date().toISOString(),
       })
       .returning();
     if (generated && photoPath) {
-      await tx.insert(generatedModels).values({ userId: createdUser.id, imagePath: photoPath });
+      await tx
+        .insert(generatedModels)
+        .values({ userId: createdUser.id, imagePath: photoPath });
     }
     return createdUser;
   });
@@ -165,7 +246,7 @@ export async function POST(request: Request) {
   // Шаг воронки «загрузил фото»: своё фото или сгенерированная модель.
   if (photoPath) {
     await recordEvent(visitorId, "profile_created", {
-      meta: { photo: generated ? "generated" : "upload", userId: user.id },
+      meta: { photo: photoSource, userId: user.id },
     });
   }
 

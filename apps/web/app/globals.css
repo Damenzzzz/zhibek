@@ -14,13 +14,13 @@
   --canvas-2: #ede3d4;
   --espresso: #2a211c;
   --espresso-2: #3a2e26;
-  --clay: #c4552f;
+  --clay: #a9482d;
   --clay-soft: #f2e0d4;
   --sage: #7c8a6b;
   --saffron: #e3a44a;
 
   --ink: #2a211c;
-  --ink-soft: #7a6a5e;
+  --ink-soft: #71645a;
   /* приглушённый текст на тёмных плашках — ink-soft там нечитаем */
   --canvas-dim: #b3a291;
   --line: #ddd0bc;
@@ -78,6 +78,89 @@ body {
   font-family: var(--font-sans);
 }
 
+@layer components {
+  .site-container {
+    @apply mx-auto w-full max-w-[88rem] px-5 sm:px-8 lg:px-14;
+  }
+  .section-space {
+    @apply py-16 sm:py-24;
+  }
+  .section-title {
+    @apply text-balance font-display text-3xl leading-tight sm:text-5xl;
+  }
+  .button-primary {
+    @apply inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-clay px-6 py-3 text-sm font-medium text-canvas hover:bg-espresso disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .button-secondary {
+    @apply inline-flex min-h-12 items-center justify-center gap-3 rounded-full border border-hair-ink px-6 py-3 text-sm font-medium text-ink hover:border-ink disabled:cursor-not-allowed disabled:opacity-50;
+  }
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+.legal-copy h2 {
+  margin-bottom: 1rem;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+.legal-copy p + p {
+  margin-top: 1rem;
+}
+.legal-copy a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.legal-copy ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.legal-copy li + li {
+  margin-top: 0.75rem;
+}
+.legal-copy th,
+.legal-copy td {
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid var(--hair-ink);
+  vertical-align: top;
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a {
+  touch-action: manipulation;
+}
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 4px;
+}
+button:not(:disabled),
+summary {
+  cursor: pointer;
+}
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 50;
+  transform: translateY(-200%);
+  background: var(--espresso);
+  color: var(--canvas);
+  padding: 1rem;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 ::selection {
   background-color: var(--clay);
   color: var(--accent-contrast);
@@ -117,7 +200,11 @@ html {
 
 /* Вертикальные волоски — намёк на нити основы в ткани. */
 .warp-lines {
-  background-image: linear-gradient(to right, var(--hair-ink) 1px, transparent 1px);
+  background-image: linear-gradient(
+    to right,
+    var(--hair-ink) 1px,
+    transparent 1px
+  );
   background-size: calc(100% / 6) 100%;
 }
 .warp-lines-dark {
@@ -302,6 +389,16 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
   .animate-fade-in-up,
   .animate-fade-in-scale,
   .animate-fade-in,

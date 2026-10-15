@@ -23,16 +23,25 @@ const golos = Golos_Text({
 });
 
 export const metadata: Metadata = {
-  title: "SILK — примерка образов",
-  description: "Каталог образов и виртуальная примерка одежды SILK",
+  title: "Smart Fashion — примерка образов",
+  description: "Каталог образов и виртуальная примерка одежды Smart Fashion",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ru" className={`${prata.variable} ${golos.variable} h-full antialiased`}>
+    <html
+      lang="ru"
+      className={`${prata.variable} ${golos.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
         <SiteHeader />
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div
+          id="page-content"
+          tabIndex={-1}
+          className="flex flex-1 flex-col outline-none"
+        >
+          {children}
+        </div>
         <SiteFooter />
         <AnalyticsTracker />
       </body>

@@ -1,7 +1,8 @@
 "use client";
-
 import { useState } from "react";
 import Image from "next/image";
+import { ImageOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SkeletonImageProps {
   src: string;
@@ -9,48 +10,56 @@ interface SkeletonImageProps {
   sizes?: string;
   className?: string;
   priority?: boolean;
-  /** Фон плейсхолдера. По умолчанию светлый — на тёмных плашках главной
-   *  передаётся bg-noir-raised, иначе до загрузки мигает белым. */
   placeholderClassName?: string;
+  fallbackSrc?: string;
 }
-
-// Обёртка над next/image с пульсирующим плейсхолдером на время загрузки —
-// используется везде, где показываются фото товаров/примерки, чтобы не было
-// пустого места/скачка вёрстки, пока грузится реальная картинка.
-export function SkeletonImage({
+export function SkeletonImage(props: SkeletonImageProps) {
+  return <ImageWithState key={props.src} {...props} />;
+}
+function ImageWithState({
   src,
   alt,
   sizes,
   className,
   priority,
   placeholderClassName,
+  fallbackSrc,
 }: SkeletonImageProps) {
+  const [source, setSource] = useState(src);
+  const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
-
+  if (failed)
+    return (
+      <div
+        role="img"
+        aria-label={alt}
+        className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas-2 p-4 text-center text-xs text-ink-soft"
+      >
+        <ImageOff className="size-6" strokeWidth={1.3} />
+        <span>Фото пока недоступно</span>
+      </div>
+    );
   return (
     <>
-      <div
-        aria-hidden
-        className={
-          "absolute inset-0 transition-opacity duration-500 " +
-          (placeholderClassName ?? "bg-bone-soft") +
-          " " +
-          (loaded ? "opacity-0" : "animate-pulse opacity-100")
-        }
-      />
+      {!loaded && (
+        <div
+          aria-hidden
+          className={cn("absolute inset-0 bg-canvas-2", placeholderClassName)}
+        />
+      )}
       <Image
-        src={src}
+        src={source}
         alt={alt}
         fill
-        unoptimized
-        priority={priority}
-        sizes={sizes}
+        unoptimized={!source.startsWith("/")}
+        preload={priority}
+        sizes={sizes ?? "(max-width:640px) 50vw, 25vw"}
         onLoad={() => setLoaded(true)}
-        className={
-          "object-cover transition-all duration-500 " +
-          (loaded ? "opacity-100" : "opacity-0") +
-          (className ? " " + className : "")
-        }
+        onError={() => {
+          if (fallbackSrc && source !== fallbackSrc) setSource(fallbackSrc);
+          else setFailed(true);
+        }}
+        className={cn("object-cover", className)}
       />
     </>
   );

@@ -16,7 +16,7 @@ export function BeforeAfter({ before, after }: BeforeAfterProps) {
   const [pos, setPos] = useState(52);
 
   return (
-    <div className="relative aspect-[3/4] w-full select-none overflow-hidden bg-canvas-2">
+    <div className="relative aspect-[3/4] w-full select-none overflow-hidden bg-canvas-2 focus-within:ring-2 focus-within:ring-canvas focus-within:ring-offset-4 focus-within:ring-offset-espresso">
       <SkeletonImage
         src={before}
         alt="До примерки"
@@ -25,7 +25,10 @@ export function BeforeAfter({ before, after }: BeforeAfterProps) {
         placeholderClassName="bg-canvas-2"
       />
 
-      <div className="absolute inset-0" style={{ clipPath: `inset(0 0 0 ${pos}%)` }}>
+      <div
+        className="absolute inset-0"
+        style={{ clipPath: `inset(0 0 0 ${pos}%)` }}
+      >
         <SkeletonImage
           src={after}
           alt="После примерки"
@@ -48,7 +51,12 @@ export function BeforeAfter({ before, after }: BeforeAfterProps) {
         style={{ left: `${pos}%` }}
       >
         <span className="absolute top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-clay">
-          <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-canvas" fill="none" strokeWidth={1.75}>
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4 stroke-canvas"
+            fill="none"
+            strokeWidth={1.75}
+          >
             <path d="M9 6 4 12l5 6M15 6l5 6-5 6" strokeLinecap="square" />
           </svg>
         </span>

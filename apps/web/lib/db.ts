@@ -18,12 +18,13 @@ if (!isRemote) {
   }
 }
 
-const client = createClient({
+const clientOptions = {
   url: process.env.TURSO_DATABASE_URL ?? `file:${path.join(process.cwd(), "data", "app.db")}`,
   authToken: process.env.TURSO_AUTH_TOKEN,
-});
+};
+let client = createClient(clientOptions);
 
-export const db = drizzle(client, { schema });
+export let db = drizzle(client, { schema });
 
 // Сборка Next.js запускает несколько workers, каждый импортирует этот модуль.
 // Если другой worker уже применил ту же миграцию, перечитываем журнал перед
@@ -34,7 +35,11 @@ for (let attempt = 0; ; attempt++) {
     break;
   } catch (error) {
     const concurrent = error instanceof Error && /SQLITE_BUSY|already exists|duplicate column/i.test(error.message);
-    if (!concurrent || attempt >= 3) throw error;
-    await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+    if (!concurrent || attempt >= 6) throw error;
+    // Новый клиент освобождает незавершённые statements после SQLITE_BUSY.
+    client.close();
+    await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1) + Math.random() * 100));
+    client = createClient(clientOptions);
+    db = drizzle(client, { schema });
   }
 }
