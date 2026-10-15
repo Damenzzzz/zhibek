@@ -25,4 +25,16 @@ const client = createClient({
 
 export const db = drizzle(client, { schema });
 
-await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+// Сборка Next.js запускает несколько workers, каждый импортирует этот модуль.
+// Если другой worker уже применил ту же миграцию, перечитываем журнал перед
+// повтором. SQL-ошибки, не связанные с конкуренцией, сразу уходят наверх.
+for (let attempt = 0; ; attempt++) {
+  try {
+    await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+    break;
+  } catch (error) {
+    const concurrent = error instanceof Error && /SQLITE_BUSY|already exists|duplicate column/i.test(error.message);
+    if (!concurrent || attempt >= 3) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+  }
+}

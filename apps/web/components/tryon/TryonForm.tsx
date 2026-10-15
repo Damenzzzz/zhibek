@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
+import { GenerationNotice } from "@/components/GenerationNotice";
 import { Carousel } from "@/components/tryon/Carousel";
 import { getVisitorId, track } from "@/lib/analytics";
 
@@ -484,6 +485,7 @@ export function TryonForm({
 
   return (
     <div className="mt-8 flex flex-col gap-8">
+      <GenerationNotice />
       <ProfileSummary profile={profile} />
 
       {looks.length > 0 && (

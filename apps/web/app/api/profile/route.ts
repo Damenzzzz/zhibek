@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { users } from "@/lib/schema";
+import { generatedModels, users } from "@/lib/schema";
 import { generateModelFromDescription, FashnApiError } from "@/lib/fashn";
 import { saveUpload } from "@/lib/storage";
 import { normalizeVisitorId, recordEvent } from "@/lib/analyticsServer";
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
   const photo = formData.get("photo");
   const noPhoto = formData.get("no_photo") === "true";
   let photoPath: string | null = null;
+  let generated = false;
 
   if (photo instanceof File && photo.size > 0) {
     const ext = PHOTO_MIME_TO_EXT[photo.type];
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
         figureType: figure_type,
       });
       photoPath = await downloadGeneratedModel(generatedUrl);
+      generated = true;
     } catch (err) {
       if (err instanceof FashnApiError) {
         return NextResponse.json({ error: err.code, message: err.message }, { status: 502 });
@@ -137,27 +139,33 @@ export async function POST(request: Request) {
     }
   }
 
-  const [user] = await db
-    .insert(users)
-    .values({
-      heightCm: height_cm,
-      weightKg: weight_kg,
-      bodyType: body_type,
-      gender,
-      photoPath,
-      ageRange: age_range ?? null,
-      skinTone: skin_tone ?? null,
-      clothingSize: clothing_size ?? null,
-      pose: pose ?? null,
-      figureType: figure_type ?? null,
-      visitorId,
-    })
-    .returning();
+  const user = await db.transaction(async (tx) => {
+    const [createdUser] = await tx
+      .insert(users)
+      .values({
+        heightCm: height_cm,
+        weightKg: weight_kg,
+        bodyType: body_type,
+        gender,
+        photoPath,
+        ageRange: age_range ?? null,
+        skinTone: skin_tone ?? null,
+        clothingSize: clothing_size ?? null,
+        pose: pose ?? null,
+        figureType: figure_type ?? null,
+        visitorId,
+      })
+      .returning();
+    if (generated && photoPath) {
+      await tx.insert(generatedModels).values({ userId: createdUser.id, imagePath: photoPath });
+    }
+    return createdUser;
+  });
 
   // Шаг воронки «загрузил фото»: своё фото или сгенерированная модель.
   if (photoPath) {
     await recordEvent(visitorId, "profile_created", {
-      meta: { photo: noPhoto ? "generated" : "upload", userId: user.id },
+      meta: { photo: generated ? "generated" : "upload", userId: user.id },
     });
   }
 
