@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { CATEGORIES, CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl, catalogImageUrls } from "@/lib/catalogDisplay";
 import { StatsTab } from "./StatsTab";
+import { GenerationsTab } from "./GenerationsTab";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Типы (совпадают с ответами /api/admin/*).
@@ -42,7 +43,7 @@ const BTN_GHOST =
 const BTN_DANGER =
   "inline-flex items-center justify-center border border-red-400 px-4 py-2 font-grotesk text-[11px] uppercase tracking-[0.14em] text-red-600 transition-colors hover:bg-red-50";
 
-type Tab = "items" | "looks" | "stats";
+type Tab = "items" | "looks" | "stats" | "generations";
 
 // ────────────────────────────────────────────────────────────────────────────
 export function AdminApp() {
@@ -120,7 +121,7 @@ export function AdminApp() {
         <div>
           <span className="tag text-ink-soft">админка</span>
           <h1 className="mt-3 font-display text-[clamp(1.75rem,5vw,3rem)] uppercase leading-[0.95] tracking-[-0.02em]">
-            {tab === "stats" ? "Статистика" : "Каталог"}
+            {tab === "stats" ? "Статистика" : tab === "generations" ? "Генерации" : "Каталог"}
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -146,12 +147,13 @@ export function AdminApp() {
         </div>
       )}
 
-      <nav className="mt-6 flex gap-2">
+      <nav className="mt-6 flex flex-wrap gap-2">
         {(
           [
             ["items", "Одежда"],
             ["looks", "Образы"],
             ["stats", "Статистика"],
+            ["generations", "Генерации"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -172,6 +174,8 @@ export function AdminApp() {
         <ItemsTab items={items} looks={looks} reload={loadData} notify={notify} />
       ) : tab === "looks" ? (
         <LooksTab items={items} looks={looks} reload={loadData} notify={notify} />
+      ) : tab === "generations" ? (
+        <GenerationsTab />
       ) : (
         <StatsTab notify={notify} />
       )}

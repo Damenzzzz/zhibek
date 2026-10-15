@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 
 // Вкладка «Статистика» админки: продуктовые метрики, воронка и расход Gemini.
@@ -134,26 +134,25 @@ export function StatsTab({ notify }: { notify: (kind: "ok" | "err", text: string
   const [period, setPeriod] = useState<Period>("7d");
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
 
-  const load = useCallback(
-    async (p: Period) => {
-      try {
-        const res = await fetch(`/api/admin/stats?period=${p}`, { cache: "no-store" });
-        if (!res.ok) throw new Error(String(res.status));
-        setStats((await res.json()) as Stats);
-      } catch {
-        notify("err", "Не удалось загрузить статистику");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [notify]
-  );
-
-  // setLoading(true) — в обработчиках, а не в эффекте (react-hooks/set-state-in-effect).
   useEffect(() => {
-    void load(period);
-  }, [load, period]);
+    const controller = new AbortController();
+    async function load() {
+      try {
+        const res = await fetch(`/api/admin/stats?period=${period}`, { cache: "no-store", signal: controller.signal });
+        if (!res.ok) throw new Error(String(res.status));
+        const result = await res.json() as Stats;
+        if (!controller.signal.aborted) setStats(result);
+      } catch {
+        if (!controller.signal.aborted) notify("err", "Не удалось загрузить статистику");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    void load();
+    return () => controller.abort();
+  }, [notify, period, revision]);
 
   function selectPeriod(p: Period) {
     if (p === period) return;
@@ -163,7 +162,7 @@ export function StatsTab({ notify }: { notify: (kind: "ok" | "err", text: string
 
   function refresh() {
     setLoading(true);
-    void load(period);
+    setRevision((value) => value + 1);
   }
 
   return (
