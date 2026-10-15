@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  index,
+} from "drizzle-orm/sqlite-core";
 
 // Синхронизируется из data/catalog/items.db (см. lib/syncCatalog.ts).
 export const catalogItems = sqliteTable("catalog_items", {
@@ -72,6 +78,8 @@ export const users = sqliteTable("users", {
   // Анонимный id посетителя (lib/analytics.ts, localStorage) — связывает анкету
   // с событиями воронки. Nullable: старые анкеты и запросы без трекера.
   visitorId: text("visitor_id"),
+  dataConsentVersion: text("data_consent_version"),
+  dataConsentAt: text("data_consent_at"),
 });
 
 export const tryonHistory = sqliteTable("tryon_history", {
@@ -106,12 +114,18 @@ export const tryonHistory = sqliteTable("tryon_history", {
 export const generatedModels = sqliteTable(
   "generated_models",
   {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id").notNull().references(() => users.id),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
     imagePath: text("image_path").notNull(),
-    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
   },
-  (t) => [index("generated_models_created_idx").on(t.createdAt)]
+  (t) => [index("generated_models_created_idx").on(t.createdAt)],
 );
 
 // Учёт расхода: примерка на Gemini (endpoint "gemini-tryon", см. lib/gemini.ts)
@@ -145,7 +159,10 @@ export const analyticsEvents = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date().toISOString()),
   },
-  (t) => [index("analytics_events_created_idx").on(t.createdAt), index("analytics_events_visitor_idx").on(t.visitorId)]
+  (t) => [
+    index("analytics_events_created_idx").on(t.createdAt),
+    index("analytics_events_visitor_idx").on(t.visitorId),
+  ],
 );
 
 // Каждый ответ AI-провайдера с реальным расходом (см. lib/aiUsage.ts). В
@@ -174,7 +191,7 @@ export const aiUsage = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date().toISOString()),
   },
-  (t) => [index("ai_usage_created_idx").on(t.createdAt)]
+  (t) => [index("ai_usage_created_idx").on(t.createdAt)],
 );
 
 // Простые настройки админки «ключ → значение» (бюджет Gemini и т.п.).
@@ -185,3 +202,23 @@ export const appSettings = sqliteTable("app_settings", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
+
+export const privacyRequests = sqliteTable(
+  "privacy_requests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id"),
+    email: text("email"),
+    type: text("type").notNull(),
+    message: text("message").notNull(),
+    consentVersion: text("consent_version").notNull(),
+    status: text("status").notNull().default("new"),
+    ipHash: text("ip_hash"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (t) => [index("privacy_requests_created_idx").on(t.createdAt)],
+);

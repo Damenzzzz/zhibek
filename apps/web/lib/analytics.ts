@@ -1,6 +1,8 @@
 "use client";
 
 import type { ClientAnalyticsEvent } from "./analyticsEvents";
+import { hasAnalyticsConsent } from "./privacyStorage";
+import { PRIVACY_VERSION } from "./privacy";
 
 // Анонимный трекинг воронки без cookies и личных данных: случайный id
 // посетителя в localStorage (как профиль — lib/profileStorage.ts). Ошибки
@@ -9,11 +11,13 @@ const VISITOR_KEY = "silk:vid";
 const SESSION_KEY = "silk:tracked";
 
 function randomId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto)
+    return crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export function getVisitorId(): string {
+  if (!hasAnalyticsConsent()) return "";
   try {
     let id = window.localStorage.getItem(VISITOR_KEY);
     if (!id) {
@@ -23,7 +27,8 @@ export function getVisitorId(): string {
     return id;
   } catch {
     // Приватный режим/запрет storage — id живёт до перезагрузки страницы.
-    return (window as unknown as { __silkVid?: string }).__silkVid ??= randomId();
+    return ((window as unknown as { __silkVid?: string }).__silkVid ??=
+      randomId());
   }
 }
 
@@ -31,25 +36,44 @@ export function getVisitorId(): string {
 // чтобы перелистывание образов не раздувало таблицу.
 function seenThisSession(key: string): boolean {
   try {
-    const seen = new Set<string>(JSON.parse(window.sessionStorage.getItem(SESSION_KEY) ?? "[]"));
+    const seen = new Set<string>(
+      JSON.parse(window.sessionStorage.getItem(SESSION_KEY) ?? "[]"),
+    );
     if (seen.has(key)) return true;
     seen.add(key);
-    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(Array.from(seen).slice(-200)));
+    window.sessionStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify(Array.from(seen).slice(-200)),
+    );
     return false;
   } catch {
     return false;
   }
 }
 
-export function track(event: ClientAnalyticsEvent, data: { lookId?: string | null } = {}): void {
+export function track(
+  event: ClientAnalyticsEvent,
+  data: { lookId?: string | null } = {},
+): void {
   try {
+    if (!hasAnalyticsConsent()) return;
     if (window.location.pathname.startsWith("/admin")) return;
     if (seenThisSession(`${event}:${data.lookId ?? ""}`)) return;
-    const body = JSON.stringify({ visitorId: getVisitorId(), event, lookId: data.lookId ?? null });
+    const body = JSON.stringify({
+      visitorId: getVisitorId(),
+      event,
+      lookId: data.lookId ?? null,
+      consentVersion: PRIVACY_VERSION,
+    });
     // sendBeacon переживает переход на другую страницу; fetch — запасной путь.
     const blob = new Blob([body], { type: "application/json" });
     if (!navigator.sendBeacon?.("/api/track", blob)) {
-      void fetch("/api/track", { method: "POST", body, keepalive: true, headers: { "Content-Type": "application/json" } });
+      void fetch("/api/track", {
+        method: "POST",
+        body,
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   } catch {
     // трекинг не критичен

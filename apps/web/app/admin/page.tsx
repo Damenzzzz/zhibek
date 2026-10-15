@@ -4,7 +4,7 @@ import { AdminApp } from "@/components/admin/AdminApp";
 // Админка не индексируется и рендерится по запросу — доступ по прямому URL,
 // в публичную навигацию не выводится (см. components/SiteHeader.tsx).
 export const metadata: Metadata = {
-  title: "SILK — админка каталога",
+  title: "Smart Fashion — админка каталога",
   robots: { index: false, follow: false },
 };
 

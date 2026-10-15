@@ -1,72 +1,56 @@
-const STEPS = [
+import { Camera, Layers, ScanLine } from "lucide-react";
+const steps = [
   {
-    title: "Выбери образ",
-    text: "Каталог собран образами целиком: берёшь верх, низ или комплект одним движением — вещи уже подобраны друг к другу на съёмке.",
-    meta: "каталог",
+    icon: Layers,
+    title: "Вдохновись сочетанием",
+    text: "Бери готовый комплект или собирай свой: верх, низ, обувь, сумку и второй слой.",
+    label: "Выбрать",
   },
   {
-    title: "Задай параметры",
-    text: "Рост, вес, телосложение, возраст, тон кожи, размер и поза. Анкета заполняется один раз и живёт в браузере — регистрации нет.",
-    meta: "анкета",
+    icon: Camera,
+    title: "Добавь немного себя",
+    text: "Используй фото в полный рост. Нет подходящего? Создай модель по своей анкете.",
+    label: "Настроить",
   },
   {
-    title: "Примерь за секунды",
-    text: "Нейросеть кладёт весь образ на твою фигуру за один проход и отдаёт кадр «до / после». Сравниваешь, скачиваешь, откладываешь в примерочную.",
-    meta: "результат",
+    icon: ScanLine,
+    title: "Посмотри по-новому",
+    text: "Сравни результат с исходным фото. Сохрани изображение или вернись к нему в истории.",
+    label: "Примерить",
   },
 ];
-
-// Светлая полоса-разворот между тёмными секциями: даёт странице ритм
-// «журнальной» вёрстки и делает шаги перечнем, а не тремя одинаковыми
-// карточками. Строка при наведении выворачивается в чёрный на всю ширину
-// экрана — отсюда before-псевдоэлемент с выносом за поля контейнера.
 export function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="relative scroll-mt-24 overflow-hidden bg-canvas-2 py-24 text-ink sm:py-32"
+      className="section-space scroll-mt-24 border-y border-hair-ink bg-canvas-2/40"
     >
-      <div className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-14">
-        <div className="on-view flex flex-wrap items-end justify-between gap-6">
+      <div className="site-container">
+        <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
-            <span className="tag text-ink/50">как это работает</span>
-            <h2 className="mt-5 font-editorial text-[clamp(2.25rem,6vw,4.5rem)] uppercase leading-[0.9] tracking-[-0.02em]">
-              Три шага
-              <br />
-              до примерки
-            </h2>
+            <span className="tag text-ink-soft">Всё проще, чем кажется</span>
+            <h2 className="section-title mt-5">Три шага к своему образу</h2>
           </div>
-          <p className="max-w-xs font-grotesk text-[13px] leading-relaxed text-ink/55">
-            Ни очереди в кабинку, ни возвратов «не подошло». Всё, что нужно, —
-            фотография или анкета.
+          <p className="max-w-xs text-pretty text-sm leading-relaxed text-ink-soft">
+            Без кабинок и регистрации. Только ты, одежда и немного технологий.
           </p>
         </div>
-
-        <div className="mt-16 border-b border-hair-ink">
-          {STEPS.map((step, i) => (
-            <div
-              key={step.title}
-              className="group relative cursor-default border-t border-hair-ink transition-colors duration-500"
-            >
-              <span className="pointer-events-none absolute inset-y-0 left-[-50vw] right-[-50vw] bg-espresso opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-
-              <div className="relative z-10 grid items-baseline gap-x-8 gap-y-4 py-9 md:grid-cols-12 md:py-12">
-                <span className="stroke-ink col-span-2 font-editorial text-[clamp(2.75rem,7vw,5.5rem)] leading-none">
-                  {String(i + 1).padStart(2, "0")}
+        <div className="mt-10 grid gap-7 md:grid-cols-3">
+          {steps.map(({ icon: Icon, title, text, label }, i) => (
+            <article key={title} className="border-t border-hair-ink pt-6">
+              <div className="flex items-center justify-between">
+                <Icon strokeWidth={1.4} className="size-7 text-clay" />
+                <span className="text-xs tabular-nums text-ink-soft">
+                  0{i + 1} / {label}
                 </span>
-                <div className="col-span-4">
-                  <span className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-clay">
-                    {step.meta}
-                  </span>
-                  <h3 className="mt-2 font-editorial text-2xl uppercase leading-tight tracking-tight transition-colors duration-500 group-hover:text-canvas sm:text-3xl">
-                    {step.title}
-                  </h3>
-                </div>
-                <p className="col-span-5 col-start-8 font-grotesk text-sm leading-relaxed text-ink/60 transition-colors duration-500 group-hover:text-canvas/70">
-                  {step.text}
-                </p>
               </div>
-            </div>
+              <h3 className="mt-6 text-balance font-display text-xl lg:text-2xl">
+                {title}
+              </h3>
+              <p className="mt-3 max-w-sm text-pretty text-sm leading-relaxed text-ink-soft">
+                {text}
+              </p>
+            </article>
           ))}
         </div>
       </div>

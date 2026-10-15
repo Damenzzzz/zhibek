@@ -1,69 +1,79 @@
 import Link from "next/link";
-
-const NAV = [
-  { href: "/catalog", label: "Каталог" },
-  { href: "/tryon", label: "Примерка" },
-  { href: "/fitting-room", label: "Примерочная" },
-  { href: "/profile", label: "Профиль" },
+import { ArrowUpRight } from "lucide-react";
+import { PrivacyControls } from "./PrivacyControls";
+import { getLegalSettings } from "@/lib/legalSettings";
+import { connection } from "next/server";
+const links = [
+  ["/catalog", "Коллекция"],
+  ["/tryon", "Примерка"],
+  ["/fitting-room", "Твоя подборка"],
+  ["/profile", "Моя анкета"],
 ];
-
-// Подвал общий для всех страниц, но набран в тёмном editorial-слое: он
-// замыкает светлую финальную плашку главной и одинаково работает под
-// светлыми разделами как контрастная полоса выходных данных.
-export function SiteFooter() {
+export async function SiteFooter() {
+  await connection();
+  const { contactEmail } = await getLegalSettings();
   return (
-    // id="about" переехал на секцию главной (components/home/About.tsx) —
-    // "О нас" в меню теперь ведёт на разворот, а не в выходные данные.
-    <footer className="grain grain-dark relative overflow-hidden bg-espresso text-canvas">
-      <div className="relative z-10 mx-auto max-w-[88rem] px-5 pt-16 sm:px-8 lg:px-14">
-        <div className="grid gap-10 border-b border-hair pb-14 md:grid-cols-[1.4fr_1fr_1fr]">
-          <div className="max-w-sm">
-            <span className="tag text-canvas-dim">silk · шёлк</span>
-            <p className="mt-5 font-grotesk text-sm leading-relaxed text-canvas-dim">
-              Каталог образов и виртуальная примерочная. Комплекты собираются из готовых
-              съёмок, примеряются на твою фигуру и остаются в истории — без походов
-              в шоурум.
-            </p>
-          </div>
-
-          <nav>
-            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-clay">
-              Разделы
-            </p>
-            <ul className="mt-5 flex flex-col gap-3 font-grotesk text-sm text-canvas-dim">
-              {NAV.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="transition-colors hover:text-canvas">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
+    <footer className="bg-espresso py-12 text-canvas">
+      <div className="site-container">
+        <div className="grid gap-10 border-b border-hair pb-10 md:grid-cols-[1.4fr_1fr_1fr]">
           <div>
-            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-clay">
-              О проекте
-            </p>
-            <p className="mt-5 font-grotesk text-sm leading-relaxed text-canvas-dim">
-              Примерка работает на нейросети Gemini, каталог собирается из
-              фотосессий тоже через Gemini. Учебный MVP.
+            <Link href="/" className="font-display text-3xl sm:text-4xl">
+              Smart Fashion.
+            </Link>
+            <p className="mt-5 max-w-xs text-pretty text-sm leading-relaxed text-canvas-dim">
+              Примеряй новое.
+              <br />
+              Оставайся собой.
             </p>
           </div>
+          <nav aria-label="Навигация в подвале" className="grid gap-3">
+            {links.map(([href, label]) => (
+              <Link
+                key={href}
+                href={href}
+                className="inline-flex min-h-9 items-center gap-2 text-sm text-canvas-dim hover:text-canvas"
+              >
+                {label}
+                <ArrowUpRight className="size-3" />
+              </Link>
+            ))}
+          </nav>
+          <div>
+            <p className="text-xs text-canvas-dim">Создано в Шымкенте</p>
+            <p className="mt-4 max-w-xs text-pretty text-xs leading-relaxed text-canvas-dim">
+              Виртуальная примерочная с AI. Результат помогает увидеть сочетание
+              одежды; размер и посадку уточняй отдельно.
+            </p>
+            <a
+              href={`mailto:${contactEmail}`}
+              className="mt-4 inline-flex min-h-9 break-all text-xs text-canvas-dim underline underline-offset-4"
+            >
+              Написать CTO: {contactEmail}
+            </a>
+            <Link
+              href="/#how-it-works"
+              className="mt-5 inline-flex min-h-9 items-center text-xs underline underline-offset-4"
+            >
+              Как это работает
+            </Link>
+          </div>
         </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 py-6 font-grotesk text-[10px] uppercase tracking-[0.28em] text-canvas-dim">
-          <span>© {new Date().getFullYear()} SILK</span>
-          <span>Shymkent</span>
+        <div className="mt-6 flex flex-wrap justify-between gap-4 text-[11px] text-canvas-dim">
+          <p>© {new Date().getFullYear()} Smart Fashion</p>
+          <div className="flex flex-wrap gap-5">
+            <Link href="/privacy" className="min-h-9 content-center">
+              Конфиденциальность
+            </Link>
+            <Link href="/terms" className="min-h-9 content-center">
+              Условия
+            </Link>
+            <Link href="/cookies" className="min-h-9 content-center">
+              Cookie
+            </Link>
+            <PrivacyControls />
+          </div>
+          <p>Меньше сомнений. Больше твоего стиля.</p>
         </div>
-      </div>
-
-      {/* Логотип во всю ширину, срезанный нижним краем — выходные данные
-          разворота. aria-hidden: это графика, а не читаемый текст. */}
-      <div aria-hidden className="relative z-10 select-none overflow-hidden">
-        <span className="stroke-canvas block translate-y-[0.18em] whitespace-nowrap text-center font-editorial text-[19vw] uppercase leading-[0.75] tracking-[0.02em] opacity-40">
-          Silk
-        </span>
       </div>
     </footer>
   );

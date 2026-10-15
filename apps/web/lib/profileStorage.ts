@@ -18,6 +18,7 @@ export interface StoredProfile {
   clothingSize: string | null;
   pose: string | null;
   figureType: string | null;
+  dataConsentVersion?: string | null;
 }
 
 export function readStoredProfile(): StoredProfile | null {

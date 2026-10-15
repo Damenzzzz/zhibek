@@ -1,10 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { CATEGORIES, CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  type CatalogCategory,
+} from "@/lib/categories";
 import { catalogImageUrl, catalogImageUrls } from "@/lib/catalogDisplay";
 import { StatsTab } from "./StatsTab";
 import { GenerationsTab } from "./GenerationsTab";
+import { PrivacyTab } from "./PrivacyTab";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Типы (совпадают с ответами /api/admin/*).
@@ -35,7 +47,8 @@ interface AdminLook {
 // Общие стили под тему сайта (см. app/globals.css / app/profile/page.tsx).
 const FIELD =
   "w-full border border-hair-ink bg-transparent px-3.5 py-2.5 font-grotesk text-sm text-ink outline-none transition-colors focus:border-clay";
-const LABEL = "mb-1.5 block font-grotesk text-[10px] uppercase tracking-[0.24em] text-ink-soft";
+const LABEL =
+  "mb-1.5 block font-grotesk text-[10px] uppercase tracking-[0.24em] text-ink-soft";
 const BTN =
   "inline-flex items-center justify-center bg-clay px-6 py-3 font-grotesk text-[12px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
 const BTN_GHOST =
@@ -43,15 +56,20 @@ const BTN_GHOST =
 const BTN_DANGER =
   "inline-flex items-center justify-center border border-red-400 px-4 py-2 font-grotesk text-[11px] uppercase tracking-[0.14em] text-red-600 transition-colors hover:bg-red-50";
 
-type Tab = "items" | "looks" | "stats" | "generations";
+type Tab = "items" | "looks" | "stats" | "generations" | "privacy";
 
 // ────────────────────────────────────────────────────────────────────────────
 export function AdminApp() {
-  const [phase, setPhase] = useState<"loading" | "disabled" | "locked" | "ready">("loading");
+  const [phase, setPhase] = useState<
+    "loading" | "disabled" | "locked" | "ready"
+  >("loading");
   const [items, setItems] = useState<AdminItem[]>([]);
   const [looks, setLooks] = useState<AdminLook[]>([]);
   const [tab, setTab] = useState<Tab>("items");
-  const [flash, setFlash] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [flash, setFlash] = useState<{
+    kind: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   const notify = useCallback((kind: "ok" | "err", text: string) => {
     setFlash({ kind, text });
@@ -68,7 +86,10 @@ export function AdminApp() {
       notify("err", "Не удалось загрузить данные");
       return;
     }
-    const data = (await res.json()) as { items: AdminItem[]; looks: AdminLook[] };
+    const data = (await res.json()) as {
+      items: AdminItem[];
+      looks: AdminLook[];
+    };
     setItems(data.items);
     setLooks(data.looks);
     setPhase("ready");
@@ -105,8 +126,10 @@ export function AdminApp() {
       <Centered>
         <p className="font-grotesk text-sm text-ink">Админка выключена.</p>
         <p className="mt-2 max-w-md font-grotesk text-[12px] leading-relaxed text-ink-soft">
-          Задайте переменную окружения <code className="text-ink">ADMIN_PASSWORD</code> на сервере
-          (локально по умолчанию пароль <code className="text-ink">admin</code>) и обновите страницу.
+          Задайте переменную окружения{" "}
+          <code className="text-ink">ADMIN_PASSWORD</code> на сервере (локально
+          по умолчанию пароль <code className="text-ink">admin</code>) и
+          обновите страницу.
         </p>
       </Centered>
     );
@@ -121,7 +144,13 @@ export function AdminApp() {
         <div>
           <span className="tag text-ink-soft">админка</span>
           <h1 className="mt-3 font-display text-[clamp(1.75rem,5vw,3rem)] uppercase leading-[0.95] tracking-[-0.02em]">
-            {tab === "stats" ? "Статистика" : tab === "generations" ? "Генерации" : "Каталог"}
+            {tab === "privacy"
+              ? "Конфиденциальность"
+              : tab === "stats"
+                ? "Статистика"
+                : tab === "generations"
+                  ? "Генерации"
+                  : "Каталог"}
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -154,6 +183,7 @@ export function AdminApp() {
             ["looks", "Образы"],
             ["stats", "Статистика"],
             ["generations", "Генерации"],
+            ["privacy", "Конфиденциальность"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -162,7 +192,9 @@ export function AdminApp() {
             onClick={() => setTab(key)}
             className={
               "border px-5 py-2.5 font-grotesk text-[11px] uppercase tracking-[0.16em] transition-colors " +
-              (tab === key ? "border-clay bg-clay text-canvas" : "border-hair-ink text-ink-soft hover:border-ink")
+              (tab === key
+                ? "border-clay bg-clay text-canvas"
+                : "border-hair-ink text-ink-soft hover:border-ink")
             }
           >
             {label}
@@ -171,9 +203,21 @@ export function AdminApp() {
       </nav>
 
       {tab === "items" ? (
-        <ItemsTab items={items} looks={looks} reload={loadData} notify={notify} />
+        <ItemsTab
+          items={items}
+          looks={looks}
+          reload={loadData}
+          notify={notify}
+        />
       ) : tab === "looks" ? (
-        <LooksTab items={items} looks={looks} reload={loadData} notify={notify} />
+        <LooksTab
+          items={items}
+          looks={looks}
+          reload={loadData}
+          notify={notify}
+        />
+      ) : tab === "privacy" ? (
+        <PrivacyTab />
       ) : tab === "generations" ? (
         <GenerationsTab />
       ) : (
@@ -229,7 +273,9 @@ function LoginGate({
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-5 py-32">
       <span className="tag text-ink-soft">админка</span>
-      <h1 className="mt-3 font-display text-3xl uppercase tracking-tight">Вход</h1>
+      <h1 className="mt-3 font-display text-3xl uppercase tracking-tight">
+        Вход
+      </h1>
       <form onSubmit={submit} className="mt-8 flex flex-col gap-4">
         <div>
           <label className={LABEL} htmlFor="admin-pw">
@@ -263,9 +309,13 @@ function LoginGate({
 function useLookOptions(items: AdminItem[], looks: AdminLook[]) {
   return useMemo(() => {
     const counts = new Map<string, number>();
-    for (const it of items) counts.set(it.lookId, (counts.get(it.lookId) ?? 0) + 1);
+    for (const it of items)
+      counts.set(it.lookId, (counts.get(it.lookId) ?? 0) + 1);
     const known = new Map(looks.map((l) => [l.id, l]));
-    const ids = new Set<string>([...looks.map((l) => l.id), ...items.map((i) => i.lookId)]);
+    const ids = new Set<string>([
+      ...looks.map((l) => l.id),
+      ...items.map((i) => i.lookId),
+    ]);
     const options: { id: string; label: string }[] = [];
     for (const id of ids) {
       const count = counts.get(id) ?? 0;
@@ -294,11 +344,14 @@ function ItemsTab({
   const [editing, setEditing] = useState<AdminItem | null>(null);
   const [filter, setFilter] = useState<string>("all");
 
-  const shown = filter === "all" ? items : items.filter((i) => i.category === filter);
+  const shown =
+    filter === "all" ? items : items.filter((i) => i.category === filter);
 
   async function remove(item: AdminItem) {
     if (!confirm(`Удалить «${item.description ?? item.category}»?`)) return;
-    const res = await fetch(`/api/admin/items/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/items/${encodeURIComponent(item.id)}`, {
+      method: "DELETE",
+    });
     if (res.ok) {
       notify("ok", "Товар удалён");
       await reload();
@@ -311,13 +364,18 @@ function ItemsTab({
     <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,26rem)_1fr]">
       {/* Форма добавления */}
       <section className="lg:sticky lg:top-24 lg:self-start">
-        <h2 className="font-display text-xl uppercase tracking-tight">Добавить товар</h2>
+        <h2 className="font-display text-xl uppercase tracking-tight">
+          Добавить товар
+        </h2>
         <ItemForm
           key="create"
           lookOptions={lookOptions}
           submitLabel="Добавить в каталог"
           onSubmit={async (fd) => {
-            const res = await fetch("/api/admin/items", { method: "POST", body: fd });
+            const res = await fetch("/api/admin/items", {
+              method: "POST",
+              body: fd,
+            });
             if (res.ok) {
               notify("ok", "Товар добавлен");
               await reload();
@@ -338,7 +396,9 @@ function ItemsTab({
             onClick={() => setFilter("all")}
             className={
               "border px-3 py-1.5 font-grotesk text-[10px] uppercase tracking-[0.14em] transition-colors " +
-              (filter === "all" ? "border-clay text-clay" : "border-hair-ink text-ink-soft hover:border-ink")
+              (filter === "all"
+                ? "border-clay text-clay"
+                : "border-hair-ink text-ink-soft hover:border-ink")
             }
           >
             Все
@@ -350,7 +410,9 @@ function ItemsTab({
               onClick={() => setFilter(cat)}
               className={
                 "border px-3 py-1.5 font-grotesk text-[10px] uppercase tracking-[0.14em] transition-colors " +
-                (filter === cat ? "border-clay text-clay" : "border-hair-ink text-ink-soft hover:border-ink")
+                (filter === cat
+                  ? "border-clay text-clay"
+                  : "border-hair-ink text-ink-soft hover:border-ink")
               }
             >
               {CATEGORY_LABELS[cat]}
@@ -365,7 +427,12 @@ function ItemsTab({
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
             {shown.map((item) => (
-              <ItemCard key={item.id} item={item} onEdit={() => setEditing(item)} onDelete={() => remove(item)} />
+              <ItemCard
+                key={item.id}
+                item={item}
+                onEdit={() => setEditing(item)}
+                onDelete={() => remove(item)}
+              />
             ))}
           </div>
         )}
@@ -379,10 +446,13 @@ function ItemsTab({
             lookOptions={lookOptions}
             submitLabel="Сохранить"
             onSubmit={async (fd) => {
-              const res = await fetch(`/api/admin/items/${encodeURIComponent(editing.id)}`, {
-                method: "PATCH",
-                body: fd,
-              });
+              const res = await fetch(
+                `/api/admin/items/${encodeURIComponent(editing.id)}`,
+                {
+                  method: "PATCH",
+                  body: fd,
+                },
+              );
               if (res.ok) {
                 notify("ok", "Изменения сохранены");
                 setEditing(null);
@@ -409,31 +479,44 @@ function ItemCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const label = CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category;
+  const label =
+    CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category;
   return (
     <div className="group flex flex-col border border-hair-ink">
       <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={catalogImageUrl(item.imagePath)} alt={item.description ?? label} className="h-full w-full object-cover" />
+        <img
+          src={catalogImageUrl(item.imagePath)}
+          alt={item.description ?? label}
+          className="h-full w-full object-cover"
+        />
         <span className="absolute left-0 top-0 bg-canvas px-2 py-1 font-grotesk text-[9px] uppercase tracking-[0.18em] text-ink-soft">
           {label}
         </span>
         <span
           className={
             "absolute right-0 top-0 px-2 py-1 font-grotesk text-[9px] uppercase tracking-[0.14em] " +
-            (item.source === "admin" ? "bg-clay text-canvas" : "bg-ink/70 text-canvas")
+            (item.source === "admin"
+              ? "bg-clay text-canvas"
+              : "bg-ink/70 text-canvas")
           }
         >
           {item.source === "admin" ? "ручной" : "пайплайн"}
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
-        <p className="line-clamp-2 font-grotesk text-[12px] leading-snug text-ink">{item.description ?? "—"}</p>
+        <p className="line-clamp-2 font-grotesk text-[12px] leading-snug text-ink">
+          {item.description ?? "—"}
+        </p>
         <p className="font-grotesk text-[10px] text-ink-soft">
           {item.color ?? "цвет —"} · позиция {item.sortIndex}
         </p>
         <div className="mt-2 flex gap-2">
-          <button type="button" onClick={onEdit} className={BTN_GHOST + " flex-1"}>
+          <button
+            type="button"
+            onClick={onEdit}
+            className={BTN_GHOST + " flex-1"}
+          >
             Изменить
           </button>
           <button type="button" onClick={onDelete} className={BTN_DANGER}>
@@ -460,7 +543,9 @@ function ItemForm({
   const [busy, setBusy] = useState(false);
   const [previews, setPreviews] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
-  const existingImages = initial ? catalogImageUrls(initial.images, initial.imagePath) : [];
+  const existingImages = initial
+    ? catalogImageUrls(initial.images, initial.imagePath)
+    : [];
 
   function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -488,7 +573,12 @@ function ItemForm({
     <form ref={formRef} onSubmit={submit} className="mt-4 flex flex-col gap-4">
       <div>
         <label className={LABEL}>Категория</label>
-        <select name="category" required defaultValue={initial?.category ?? ""} className={FIELD}>
+        <select
+          name="category"
+          required
+          defaultValue={initial?.category ?? ""}
+          className={FIELD}
+        >
           <option value="" disabled>
             Выбери категорию
           </option>
@@ -503,11 +593,21 @@ function ItemForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={LABEL}>Цвет</label>
-          <input name="color" defaultValue={initial?.color ?? ""} placeholder="чёрный" className={FIELD} />
+          <input
+            name="color"
+            defaultValue={initial?.color ?? ""}
+            placeholder="чёрный"
+            className={FIELD}
+          />
         </div>
         <div>
           <label className={LABEL}>Артикул</label>
-          <input name="sku" defaultValue={initial?.sku ?? ""} placeholder="—" className={FIELD} />
+          <input
+            name="sku"
+            defaultValue={initial?.sku ?? ""}
+            placeholder="—"
+            className={FIELD}
+          />
         </div>
       </div>
 
@@ -524,7 +624,11 @@ function ItemForm({
       <div className="grid grid-cols-[1fr_6rem] gap-3">
         <div>
           <label className={LABEL}>Образ (комплект)</label>
-          <select name="look_id" defaultValue={initial?.lookId ?? ""} className={FIELD}>
+          <select
+            name="look_id"
+            defaultValue={initial?.lookId ?? ""}
+            className={FIELD}
+          >
             <option value="">— без образа —</option>
             {lookOptions.map((opt) => (
               <option key={opt.id} value={opt.id}>
@@ -563,7 +667,12 @@ function ItemForm({
           <div className="mt-3 flex flex-wrap gap-2">
             {(previews.length > 0 ? previews : existingImages).map((src, i) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={src} alt="" className="h-20 w-16 object-cover ring-1 ring-hair-ink" />
+              <img
+                key={i}
+                src={src}
+                alt=""
+                className="h-20 w-16 object-cover ring-1 ring-hair-ink"
+              />
             ))}
           </div>
         )}
@@ -600,11 +709,13 @@ function LooksTab({
     if (
       !confirm(
         `Удалить образ «${look.title ?? look.id}»?` +
-          (n > 0 ? ` Вместе с ним удалятся ${n} вещей этого образа.` : "")
+          (n > 0 ? ` Вместе с ним удалятся ${n} вещей этого образа.` : ""),
       )
     )
       return;
-    const res = await fetch(`/api/admin/looks/${encodeURIComponent(look.id)}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/looks/${encodeURIComponent(look.id)}`, {
+      method: "DELETE",
+    });
     if (res.ok) {
       notify("ok", "Образ удалён");
       await reload();
@@ -616,15 +727,21 @@ function LooksTab({
   return (
     <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,26rem)_1fr]">
       <section className="lg:sticky lg:top-24 lg:self-start">
-        <h2 className="font-display text-xl uppercase tracking-tight">Создать образ</h2>
+        <h2 className="font-display text-xl uppercase tracking-tight">
+          Создать образ
+        </h2>
         <p className="mt-2 font-grotesk text-[12px] leading-relaxed text-ink-soft">
-          Создайте образ, затем во вкладке «Одежда» привяжите к нему вещи через поле «Образ».
+          Создайте образ, затем во вкладке «Одежда» привяжите к нему вещи через
+          поле «Образ».
         </p>
         <LookForm
           key="create"
           submitLabel="Создать образ"
           onSubmit={async (fd) => {
-            const res = await fetch("/api/admin/looks", { method: "POST", body: fd });
+            const res = await fetch("/api/admin/looks", {
+              method: "POST",
+              body: fd,
+            });
             if (res.ok) {
               notify("ok", "Образ создан");
               await reload();
@@ -640,17 +757,24 @@ function LooksTab({
       <section>
         {looks.length === 0 ? (
           <p className="border border-hair-ink px-5 py-16 text-center font-grotesk text-sm text-ink-soft">
-            Образов пока нет. Образы из Python-пайплайна (обложка файлом) здесь не показываются, пока
-            им не задать метаданные.
+            Образов пока нет. Образы из Python-пайплайна (обложка файлом) здесь
+            не показываются, пока им не задать метаданные.
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
             {looks.map((look) => (
-              <div key={look.id} className="flex flex-col border border-hair-ink">
+              <div
+                key={look.id}
+                className="flex flex-col border border-hair-ink"
+              >
                 <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2">
                   {look.coverPath ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={catalogImageUrl(look.coverPath)} alt={look.title ?? look.id} className="h-full w-full object-cover" />
+                    <img
+                      src={catalogImageUrl(look.coverPath)}
+                      alt={look.title ?? look.id}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="flex h-full items-center justify-center font-grotesk text-[11px] text-ink-soft">
                       без обложки
@@ -658,15 +782,25 @@ function LooksTab({
                   )}
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-3">
-                  <p className="line-clamp-2 font-grotesk text-[12px] text-ink">{look.title ?? "Без названия"}</p>
+                  <p className="line-clamp-2 font-grotesk text-[12px] text-ink">
+                    {look.title ?? "Без названия"}
+                  </p>
                   <p className="font-grotesk text-[10px] text-ink-soft">
                     {counts.get(look.id) ?? 0} вещей · позиция {look.sortIndex}
                   </p>
                   <div className="mt-2 flex gap-2">
-                    <button type="button" onClick={() => setEditing(look)} className={BTN_GHOST + " flex-1"}>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(look)}
+                      className={BTN_GHOST + " flex-1"}
+                    >
                       Изменить
                     </button>
-                    <button type="button" onClick={() => remove(look)} className={BTN_DANGER}>
+                    <button
+                      type="button"
+                      onClick={() => remove(look)}
+                      className={BTN_DANGER}
+                    >
                       Удалить
                     </button>
                   </div>
@@ -684,10 +818,13 @@ function LooksTab({
             initial={editing}
             submitLabel="Сохранить"
             onSubmit={async (fd) => {
-              const res = await fetch(`/api/admin/looks/${encodeURIComponent(editing.id)}`, {
-                method: "PATCH",
-                body: fd,
-              });
+              const res = await fetch(
+                `/api/admin/looks/${encodeURIComponent(editing.id)}`,
+                {
+                  method: "PATCH",
+                  body: fd,
+                },
+              );
               if (res.ok) {
                 notify("ok", "Изменения сохранены");
                 setEditing(null);
@@ -732,18 +869,29 @@ function LookForm({
     }
   }
 
-  const currentCover = preview ?? (initial?.coverPath ? catalogImageUrl(initial.coverPath) : null);
+  const currentCover =
+    preview ?? (initial?.coverPath ? catalogImageUrl(initial.coverPath) : null);
 
   return (
     <form ref={formRef} onSubmit={submit} className="mt-4 flex flex-col gap-4">
       <div className="grid grid-cols-[1fr_6rem] gap-3">
         <div>
           <label className={LABEL}>Название образа</label>
-          <input name="title" defaultValue={initial?.title ?? ""} placeholder="Например: Осенний кэжуал" className={FIELD} />
+          <input
+            name="title"
+            defaultValue={initial?.title ?? ""}
+            placeholder="Например: Осенний кэжуал"
+            className={FIELD}
+          />
         </div>
         <div>
           <label className={LABEL}>Позиция</label>
-          <input name="sort_index" type="number" defaultValue={initial?.sortIndex ?? 0} className={FIELD} />
+          <input
+            name="sort_index"
+            type="number"
+            defaultValue={initial?.sortIndex ?? 0}
+            className={FIELD}
+          />
         </div>
       </div>
 
@@ -764,7 +912,11 @@ function LookForm({
         />
         {currentCover && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={currentCover} alt="" className="mt-3 h-40 w-32 object-cover ring-1 ring-hair-ink" />
+          <img
+            src={currentCover}
+            alt=""
+            className="mt-3 h-40 w-32 object-cover ring-1 ring-hair-ink"
+          />
         )}
       </div>
 
@@ -795,8 +947,14 @@ function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hair-ink pb-3">
-          <h3 className="font-display text-lg uppercase tracking-tight">{title}</h3>
-          <button type="button" onClick={onClose} className="font-grotesk text-sm text-ink-soft hover:text-ink">
+          <h3 className="font-display text-lg uppercase tracking-tight">
+            {title}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-grotesk text-sm text-ink-soft hover:text-ink"
+          >
             ✕
           </button>
         </div>
