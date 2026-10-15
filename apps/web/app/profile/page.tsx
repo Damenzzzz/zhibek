@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { PROFILE_STORAGE_KEY, type StoredProfile } from "@/lib/profileStorage";
 import { getVisitorId } from "@/lib/analytics";
+import { GenerationNotice } from "@/components/GenerationNotice";
 
 // Клиентский предохранитель поверх серверного poll-таймаута FASHN (3 минуты,
 // см. lib/fashn.ts) — если сервер вообще не ответит, не виснем бесконечно.
@@ -156,6 +157,7 @@ function ProfileForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-10">
+      <GenerationNotice />
       {/* Выбор источника модели поднят в начало формы: раньше это был тумблер
           в самом низу, и про генерацию модели без фото никто не узнавал. */}
       <fieldset>

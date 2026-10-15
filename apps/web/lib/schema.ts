@@ -101,6 +101,19 @@ export const tryonHistory = sqliteTable("tryon_history", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+// Только результаты FASHN model-create. Загруженные пользователем фотографии
+// сюда не попадают; старые photo_path нельзя надёжно разделить по источнику.
+export const generatedModels = sqliteTable(
+  "generated_models",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull().references(() => users.id),
+    imagePath: text("image_path").notNull(),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  },
+  (t) => [index("generated_models_created_idx").on(t.createdAt)]
+);
+
 // Учёт расхода: примерка на Gemini (endpoint "gemini-tryon", см. lib/gemini.ts)
 // и генерация модели по анкете на FASHN (см. lib/fashn.ts).
 export const creditUsage = sqliteTable("credit_usage", {

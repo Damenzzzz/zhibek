@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
   // Верх-слот может содержать как top, так и outerwear (жилет/жакет) — на фронте
   // они в одной ленте «Верх»; раскладываем по реальной категории товара, чтобы
   // промпт точнее описал вещь.
-  const garmentUrl = (imagePath: string) => `${origin}${catalogImageUrl(imagePath)}`;
+  const garmentUrl = (imagePath: string) => new URL(catalogImageUrl(imagePath), origin).href;
   const garments: TryOnGarments = {};
   if (outerwearItem) garments.outerwear = garmentUrl(outerwearItem.imagePath);
   if (topItem) {
