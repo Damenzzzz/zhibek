@@ -1,32 +1,63 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-export function About() {
+
+export function About({
+  itemCount,
+  lookCount,
+}: {
+  itemCount: number;
+  lookCount: number;
+}) {
+  const stats = [
+    { value: itemCount, label: "вещей в коллекции" },
+    { value: lookCount, label: "готовых образов" },
+    { value: 0, label: "регистраций нужно" },
+  ];
   return (
-    <section id="about" className="section-space scroll-mt-24">
-      <div className="site-container grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
-        <span className="tag self-start text-ink-soft">Создано в Шымкенте</span>
+    <section id="about" className="section-space">
+      <div className="site-container grid gap-12 lg:grid-cols-[1fr_1fr] lg:gap-20">
         <div>
-          <h2 className="section-title max-w-2xl">
-            Больше свободы
-            <br />
-            быть собой.
+          <span className="label text-clay">Создано в Шымкенте</span>
+          <blockquote className="mt-7 font-display text-[clamp(1.75rem,3.2vw,2.75rem)] leading-[1.18] tracking-[-0.01em]">
+            <span className="text-clay">«</span>Одежда на фотографии и одежда на
+            тебе — <span className="italic">две разные истории.</span>
+            <span className="text-clay">»</span>
+          </blockquote>
+          <p className="mt-6 text-[15px] text-ink-soft">
+            Мы создаём Smart Fashion, чтобы между ними было меньше
+            неизвестности.
+          </p>
+        </div>
+        <div className="lg:pt-12">
+          <h2 className="section-title max-w-xl">
+            Больше свободы <span className="accent-italic">быть собой.</span>
           </h2>
-          <div className="mt-7 grid gap-6 text-pretty text-sm leading-relaxed text-ink-soft sm:grid-cols-2">
+          <div className="mt-7 grid gap-5 text-pretty text-[15px] leading-relaxed text-ink-soft sm:grid-cols-2">
             <p>
-              Одежда на фотографии и одежда на тебе — две разные истории. Мы
-              создаём Smart Fashion, чтобы между ними было меньше неизвестности.
-              Здесь можно пробовать новое сочетание до покупки.
+              Здесь можно пробовать новое сочетание до покупки — без кабинок,
+              очередей и спешки.
             </p>
             <p>
-              Smart Fashion объединяет подбор одежды и виртуальную примерку.
               Сохраняй любимые вещи, собирай сочетания и смотри, как они могут
               выглядеть на тебе, прежде чем сделать выбор.
             </p>
           </div>
-          <Link
-            href="/catalog?view=looks"
-            className="mt-7 inline-flex items-center gap-3 text-sm text-clay"
-          >
+          <dl className="mt-10 grid grid-cols-3 divide-x divide-hair-ink border-y border-hair-ink">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="flex flex-col-reverse px-4 py-6 first:pl-0"
+              >
+                <dt className="mt-2 text-[13px] leading-snug text-ink-soft">
+                  {stat.label}
+                </dt>
+                <dd className="font-display text-4xl tabular-nums leading-none sm:text-5xl">
+                  {stat.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <Link href="/catalog?view=looks" className="link-arrow mt-8">
             Найти своё сочетание <ArrowUpRight className="size-4" />
           </Link>
         </div>

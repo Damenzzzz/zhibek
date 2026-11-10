@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { catalogItems, looks } from "@/lib/schema";
 import { buildCatalogLooks } from "@/lib/catalogView";
 import { Hero } from "@/components/home/Hero";
+import { CategoryBand } from "@/components/home/CategoryBand";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { CatalogShowcase } from "@/components/home/CatalogShowcase";
 import { About } from "@/components/home/About";
@@ -27,16 +28,16 @@ export default async function HomePage() {
   ]);
   const outfits = buildCatalogLooks(items, lookRows);
 
-  // Ритм полос: кость → песок → эспрессо → кость → песок → терракота,
-  // дальше тёмный подвал. Одна тёмная и одна цветная плашка на всю страницу —
-  // остальное светлое.
+  // Ритм полос: светлый первый экран → бегущая строка → витрина → эспрессо →
+  // песок → светлый → вопросы → терракота, дальше тёмный подвал.
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <Hero />
+      <CategoryBand />
       <CatalogShowcase looks={outfits} />
       <TryonShowcase />
       <HowItWorks />
-      <About />
+      <About itemCount={items.length} lookCount={outfits.length} />
       <Questions />
       <FinalCta />
     </main>

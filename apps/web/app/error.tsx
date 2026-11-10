@@ -4,11 +4,11 @@ import { RefreshCw } from "lucide-react";
 export default function ErrorPage({ reset }: { reset: () => void }) {
   return (
     <main className="site-container flex min-h-[65dvh] flex-1 flex-col items-center justify-center py-32 text-center">
-      <p className="tag text-ink-soft">Небольшая заминка</p>
-      <h1 className="mt-6 font-display text-3xl sm:text-5xl">
-        Попробуем ещё раз?
+      <p className="label text-clay">Небольшая заминка</p>
+      <h1 className="mt-6 font-display text-4xl leading-tight sm:text-5xl">
+        Попробуем <span className="accent-italic">ещё раз?</span>
       </h1>
-      <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-ink-soft">
+      <p className="mt-5 max-w-md text-pretty text-[15px] leading-relaxed text-ink-soft">
         Не получилось загрузить эту страницу. Проверь соединение и повтори
         попытку.
       </p>

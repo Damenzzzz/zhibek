@@ -1,25 +1,26 @@
-import type { Metadata } from "next";
-import { Prata, Golos_Text } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Noto_Serif_Display, Golos_Text } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
-// Пара на весь сайт: Prata — контрастная антиква дидоновского толка, живёт
-// только на крупном кегле (единственное начертание 400, font-semibold к ней
-// применять нельзя — будет синтетический жир). Golos Text — кириллический
-// гротеск под подписи и текст. Прежние Unbounded/Onest убраны: после
-// редизайна их больше негде использовать, а четыре семейства грузились зря.
-const prata = Prata({
-  variable: "--font-prata",
+// Пара на весь сайт: Noto Serif Display — контрастная дидона с кириллицей,
+// вариативным весом и курсивом (курсив терракотой — главный акцент в
+// заголовках). Golos Text — кириллический гротеск под подписи и текст.
+// Prata заменена: у неё одно начертание без курсива, а капс ею читался плохо.
+const serifDisplay = Noto_Serif_Display({
+  variable: "--font-serif-display",
   subsets: ["latin", "cyrillic"],
-  weight: ["400"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 const golos = Golos_Text({
   variable: "--font-golos",
   subsets: ["latin", "cyrillic"],
   weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -27,11 +28,15 @@ export const metadata: Metadata = {
   description: "Каталог образов и виртуальная примерка одежды Smart Fashion",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#f7f1e7",
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ru"
-      className={`${prata.variable} ${golos.variable} h-full antialiased`}
+      className={`${serifDisplay.variable} ${golos.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <SiteHeader />

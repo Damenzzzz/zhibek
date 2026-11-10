@@ -23,24 +23,27 @@ export default async function CatalogPage({
   return (
     <main className="flex-1">
       <PageHeading
-        label="Коллекция Smart Fashion"
-        title="Носи по-своему."
+        label="Коллекция"
+        title={
+          <>
+            Носи <span className="accent-italic">по-своему.</span>
+          </>
+        }
         description="Готовые сочетания для вдохновения. Отдельные вещи — для твоих собственных правил."
       >
-        <div className="hidden gap-7 text-ink-soft sm:flex">
-          <p>
-            <span className="block font-display text-3xl tabular-nums text-ink">
-              {items.length}
-            </span>
-            <span className="mt-1 block text-xs">вещей</span>
-          </p>
-          <p>
-            <span className="block font-display text-3xl tabular-nums text-ink">
-              {outfits.length}
-            </span>
-            <span className="mt-1 block text-xs">образов</span>
-          </p>
-        </div>
+        <dl className="hidden divide-x divide-hair-ink text-ink-soft sm:flex">
+          {[
+            [items.length, "вещей"],
+            [outfits.length, "образов"],
+          ].map(([value, label]) => (
+            <div key={label} className="flex flex-col-reverse px-6 last:pr-0">
+              <dt className="mt-2 text-[13px]">{label}</dt>
+              <dd className="font-display text-5xl leading-none tabular-nums text-ink">
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </PageHeading>
       <CatalogExplorer
         key={[params.category, params.view, params.q].join(":")}

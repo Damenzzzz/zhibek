@@ -219,8 +219,25 @@ dev-сервера/деплое) — `db:migrate` нужен редко, для 
 
 Tailwind v4, тема целиком объявлена через `@theme inline` в
 `apps/web/app/globals.css` — отдельного `tailwind.config.*` нет. Шрифты:
-`Unbounded` (заголовки, `font-display`) и `Onest` (текст, `font-sans`),
+`Noto Serif Display` (заголовки, `font-display`; курсив `.accent-italic` —
+терракотовый акцент в заголовках) и `Golos Text` (текст, `font-sans`),
 подключаются в `apps/web/app/layout.tsx`.
+
+Общие компонентные классы там же, в `@layer components` — новые экраны
+собираются из них, а не из разовых наборов утилит:
+- кнопки `.button-primary` / `.button-dark` / `.button-secondary` /
+  `.button-light` / `.button-ghost-light` (+ размеры `.button-sm`,
+  `.button-lg`), `.icon-button`, `.link-arrow`;
+- формы `.field`, `.field-label`, `.chip` (radio/checkbox в `sr-only` или
+  кнопка с `aria-pressed`), `.segmented`;
+- поверхности `.panel`, `.media-well` + `.media-product` (товарное фото
+  через `mix-blend-multiply` на подложке `--media`, чтобы белые и серые фоны
+  снимков сводились к одному тону), `.skeleton`;
+- типографика `.section-title`, `.lead`, `.label` (микро-рубрика, не мельче
+  11px).
+
+Цвета — только токены (`canvas`, `surface`, `media`, `espresso`, `clay`,
+`clay-deep`, `ink`, `ink-soft`, …); сырые hex в разметке не пишем.
 
 ## Деплой (Vercel)
 

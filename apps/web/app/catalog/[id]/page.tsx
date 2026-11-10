@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight, Sparkles } from "lucide-react";
 import { and, eq, ne } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -40,63 +41,99 @@ export default async function ProductPage({
   const swatch = colorSwatch(item.color);
   const images = catalogImageUrls(item.images, item.imagePath);
 
+  const tryonSlot =
+    item.category === "bottom"
+      ? "bottom"
+      : item.category === "shoes"
+        ? "shoes"
+        : item.category === "bag"
+          ? "bag"
+          : "top";
+
+  const details = [
+    item.color && {
+      label: "Цвет",
+      value: (
+        <span className="flex items-center gap-2.5">
+          {swatch && (
+            <span
+              aria-hidden
+              className="size-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(42,33,28,0.18)]"
+              style={{ backgroundColor: swatch }}
+            />
+          )}
+          <span className="first-letter:uppercase">{item.color}</span>
+        </span>
+      ),
+    },
+    item.sku && {
+      label: "Артикул",
+      value: <span className="tabular-nums">{item.sku}</span>,
+    },
+    { label: "Категория", value: label },
+    { label: "Ракурсов", value: <span className="tabular-nums">{images.length}</span> },
+  ].filter(Boolean) as { label: string; value: React.ReactNode }[];
+
   return (
     <div className="flex flex-1 flex-col bg-canvas">
-      <main className="mx-auto w-full max-w-[88rem] flex-1 animate-fade-in-up px-5 pb-20 pt-28 sm:px-8 lg:px-14">
-        <Link
-          href="/catalog"
-          className="group inline-flex items-center gap-3 font-grotesk text-[10px] uppercase tracking-[0.28em] text-ink-soft transition-colors hover:text-ink"
+      <main className="site-container flex-1 animate-fade-in-up pb-20 pt-28 sm:pt-32">
+        <nav
+          aria-label="Хлебные крошки"
+          className="flex flex-wrap items-center gap-1.5 text-[13px] text-ink-soft"
         >
-          <span className="block h-px w-6 bg-clay transition-all duration-300 group-hover:w-10" />
-          Каталог
-        </Link>
+          <Link href="/" className="transition-colors hover:text-clay">
+            Главная
+          </Link>
+          <ChevronRight className="size-3.5" aria-hidden />
+          <Link href="/catalog" className="transition-colors hover:text-clay">
+            Коллекция
+          </Link>
+          <ChevronRight className="size-3.5" aria-hidden />
+          <Link
+            href={`/catalog?category=${item.category}`}
+            className="transition-colors hover:text-clay"
+          >
+            {label}
+          </Link>
+        </nav>
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16 xl:gap-24">
           <ProductGallery images={images} alt={item.description ?? label} />
 
-          <div className="flex flex-col lg:pt-4">
-            <span className="tag text-ink-soft">{label}</span>
-            <h1 className="mt-5 font-display text-[clamp(1.75rem,4vw,3.25rem)] uppercase leading-[0.95] tracking-[-0.02em] text-ink">
+          <div className="flex flex-col lg:sticky lg:top-28 lg:self-start lg:pt-2">
+            <span className="label text-clay">{label}</span>
+            <h1 className="mt-5 text-balance font-display text-[clamp(2.1rem,4vw,3.4rem)] leading-[1.05] tracking-[-0.015em] text-ink first-letter:uppercase">
               {item.description ?? label}
             </h1>
 
-            <dl className="mt-8 border-t border-hair-ink font-grotesk">
-              {item.color && (
-                <div className="grid grid-cols-[7rem_1fr] gap-4 border-b border-hair-ink py-3.5">
-                  <dt className="text-[10px] uppercase tracking-[0.24em] text-clay">Цвет</dt>
-                  <dd className="flex items-center gap-2 text-[13px] text-ink">
-                    <span
-                      aria-hidden
-                      className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-hair-ink"
-                      style={{ backgroundColor: swatch ?? "transparent" }}
-                    />
-                    <span className="capitalize">{item.color}</span>
-                  </dd>
+            <dl className="mt-8 divide-y divide-hair-ink border-y border-hair-ink">
+              {details.map((row) => (
+                <div
+                  key={row.label}
+                  className="grid grid-cols-[8rem_1fr] items-center gap-4 py-3.5 text-[15px]"
+                >
+                  <dt className="text-ink-soft">{row.label}</dt>
+                  <dd className="text-ink">{row.value}</dd>
                 </div>
-              )}
-              {item.sku && (
-                <div className="grid grid-cols-[7rem_1fr] gap-4 border-b border-hair-ink py-3.5">
-                  <dt className="text-[10px] uppercase tracking-[0.24em] text-clay">Артикул</dt>
-                  <dd className="text-[13px] tabular-nums text-ink">{item.sku}</dd>
-                </div>
-              )}
-              <div className="grid grid-cols-[7rem_1fr] gap-4 border-b border-hair-ink py-3.5">
-                <dt className="text-[10px] uppercase tracking-[0.24em] text-clay">Ракурсов</dt>
-                <dd className="text-[13px] tabular-nums text-ink">{images.length}</dd>
-              </div>
+              ))}
             </dl>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <AddToFittingRoomButton itemId={item.id} />
               <Link
-                href={`/tryon?${item.category === "bottom" ? "bottom" : item.category === "shoes" ? "shoes" : item.category === "bag" ? "bag" : "top"}=${item.id}`}
-                className="inline-flex items-center border border-hair-ink px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-ink transition-colors hover:border-ink"
+                href={`/tryon?${tryonSlot}=${item.id}`}
+                className="button-secondary button-lg w-full sm:w-auto"
               >
+                <Sparkles className="size-4" strokeWidth={1.75} />
                 Примерить сразу
               </Link>
             </div>
+            <p className="mt-4 text-[13px] leading-relaxed text-ink-soft">
+              Примерка покажет сочетание на твоей модели. Размер и посадку
+              сверяй отдельно.
+            </p>
 
-            <div className="mt-12 flex flex-col gap-8">
+            <div className="mt-12 flex flex-col gap-10">
               <ItemStrip title="Часть образа" items={lookItems} />
               <ItemStrip title="Дополните образ" items={matches} />
             </div>

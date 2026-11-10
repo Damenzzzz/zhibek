@@ -6,26 +6,32 @@
    шалфей и шафран — вторыми. Так сайт про одежду читается тканью, а не
    интерфейсом; чистый чёрно-белый минимал сюда не ложился.
 
-   Токены общие для всего сайта: старые имена (bone/ink/accent/line) оставлены
-   алиасами, поэтому неперерисованные разделы — примерочная, корзина, карточка
-   товара — подхватывают новую гамму сами, без правки классов. */
+   Компоненты берут цвета только из токенов ниже — сырые hex в разметке не
+   пишем. Старые имена (bone/ink/accent/line) оставлены алиасами для админки. */
 :root {
   --canvas: #f7f1e7;
   --canvas-2: #ede3d4;
+  /* Светлее холста — поверхность карточек, полей и панелей. */
+  --surface: #fbf8f2;
+  /* Подложка под товарные фото. Снимки приходят на белом и сером фоне;
+     multiply по этой подложке сводит их к одному тону. */
+  --media: #efe8dc;
   --espresso: #2a211c;
   --espresso-2: #3a2e26;
   --clay: #a9482d;
+  --clay-deep: #8c3a22;
   --clay-soft: #f2e0d4;
   --sage: #7c8a6b;
   --saffron: #e3a44a;
 
   --ink: #2a211c;
-  --ink-soft: #71645a;
+  /* 5.7:1 на холсте и 5.0:1 на песке — читается и мелким кеглем. */
+  --ink-soft: #685b51;
   /* приглушённый текст на тёмных плашках — ink-soft там нечитаем */
-  --canvas-dim: #b3a291;
+  --canvas-dim: #c2b3a3;
   --line: #ddd0bc;
   --hair: rgba(247, 241, 231, 0.18);
-  --hair-ink: rgba(42, 33, 28, 0.16);
+  --hair-ink: rgba(42, 33, 28, 0.14);
 
   /* алиасы прежней светлой темы */
   --paper: var(--canvas);
@@ -33,15 +39,24 @@
   --accent: var(--clay);
   --accent-soft: var(--clay-soft);
   --accent-contrast: #fdfaf5;
+
+  --shadow-soft: 0 1px 2px rgba(42, 33, 28, 0.04),
+    0 12px 32px -12px rgba(42, 33, 28, 0.18);
+  --shadow-lift: 0 2px 4px rgba(42, 33, 28, 0.05),
+    0 24px 48px -16px rgba(42, 33, 28, 0.28);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
   --color-canvas: var(--canvas);
   --color-canvas-2: var(--canvas-2);
   --color-canvas-dim: var(--canvas-dim);
+  --color-surface: var(--surface);
+  --color-media: var(--media);
   --color-espresso: var(--espresso);
   --color-espresso-2: var(--espresso-2);
   --color-clay: var(--clay);
+  --color-clay-deep: var(--clay-deep);
   --color-clay-soft: var(--clay-soft);
   --color-sage: var(--sage);
   --color-saffron: var(--saffron);
@@ -57,11 +72,15 @@
   --color-accent-soft: var(--accent-soft);
   --color-gold: var(--saffron);
 
-  /* Prata — контрастная антиква, работает только на крупном кегле и только в
-     400 (другого начертания у неё нет: font-semibold даст синтетический жир).
+  --shadow-soft: var(--shadow-soft);
+  --shadow-lift: var(--shadow-lift);
+  --ease-out-soft: var(--ease-out);
+
+  /* Noto Serif Display — дидона с кириллицей, вариативным весом и курсивом:
+     курсив терракотой работает акцентом в заголовках вместо капса.
      Golos Text — кириллический гротеск под весь остальной текст. */
-  --font-display: var(--font-prata);
-  --font-editorial: var(--font-prata);
+  --font-display: var(--font-serif-display);
+  --font-editorial: var(--font-serif-display);
   --font-sans: var(--font-golos);
   --font-grotesk: var(--font-golos);
 }
@@ -72,28 +91,18 @@
   color-scheme: light;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-color: var(--canvas);
   color: var(--ink);
   font-family: var(--font-sans);
-}
-
-@layer components {
-  .site-container {
-    @apply mx-auto w-full max-w-[88rem] px-5 sm:px-8 lg:px-14;
-  }
-  .section-space {
-    @apply py-16 sm:py-24;
-  }
-  .section-title {
-    @apply text-balance font-display text-3xl leading-tight sm:text-5xl;
-  }
-  .button-primary {
-    @apply inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-clay px-6 py-3 text-sm font-medium text-canvas hover:bg-espresso disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .button-secondary {
-    @apply inline-flex min-h-12 items-center justify-center gap-3 rounded-full border border-hair-ink px-6 py-3 text-sm font-medium text-ink hover:border-ink disabled:cursor-not-allowed disabled:opacity-50;
-  }
+  font-size: 1rem;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -101,17 +110,116 @@ h2,
 h3 {
   text-wrap: balance;
 }
+
+@layer components {
+  .site-container {
+    @apply mx-auto w-full max-w-[88rem] px-5 sm:px-8 lg:px-14;
+  }
+  .section-space {
+    @apply py-20 sm:py-28;
+  }
+  .section-title {
+    @apply text-balance font-display text-[clamp(2.1rem,4.4vw,3.9rem)] leading-[1.04] tracking-[-0.015em];
+  }
+  /* Курсивный акцент внутри заголовка: «Найди образ. *Узнай себя.*» */
+  .accent-italic {
+    @apply font-display italic text-clay;
+  }
+  .lead {
+    @apply text-pretty text-base leading-relaxed text-ink-soft sm:text-lg;
+  }
+
+  /* Микро-рубрика: единая для всего сайта, не мельче 11px. */
+  .label {
+    @apply text-[11px] font-semibold uppercase leading-none tracking-[0.18em];
+  }
+
+  /* --- Кнопки -----------------------------------------------------------
+     Все CTA — пилюли одной высоты (48px, на телефоне не меньше 44px), с
+     ответом на нажатие. Варианты отличаются только заливкой. */
+  .button-primary,
+  .button-dark,
+  .button-secondary,
+  .button-light,
+  .button-ghost-light {
+    @apply inline-flex min-h-12 select-none items-center justify-center gap-2.5 rounded-full px-6 py-3 text-[15px] font-medium leading-tight transition-[background-color,color,border-color,box-shadow,transform] duration-200 ease-out active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45;
+  }
+  .button-primary {
+    @apply bg-clay text-canvas hover:bg-clay-deep;
+  }
+  .button-dark {
+    @apply bg-espresso text-canvas hover:bg-clay;
+  }
+  .button-secondary {
+    @apply border border-hair-ink bg-surface/60 text-ink hover:border-ink hover:bg-surface;
+  }
+  .button-light {
+    @apply bg-canvas text-ink hover:bg-surface;
+  }
+  .button-ghost-light {
+    @apply border border-canvas/35 text-canvas hover:border-canvas hover:bg-canvas/10;
+  }
+  .button-sm {
+    @apply min-h-11 px-5 py-2.5 text-sm;
+  }
+  .button-lg {
+    @apply min-h-14 px-8 text-base;
+  }
+  .link-arrow {
+    @apply inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-clay underline decoration-clay/30 underline-offset-[6px] transition-colors hover:decoration-clay;
+  }
+
+  /* Круглая иконка-кнопка (закладка, закрыть, листалка). 44px — минимум
+     для пальца. */
+  .icon-button {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-200 hover:bg-canvas-2 active:scale-95;
+  }
+
+  /* --- Формы ------------------------------------------------------------ */
+  .field {
+    @apply min-h-12 w-full rounded-xl border border-hair-ink bg-surface px-4 py-3 text-base text-ink transition-[border-color,box-shadow] duration-200 placeholder:text-ink-soft hover:border-ink/40 focus:border-clay focus:shadow-[0_0_0_3px_rgba(169,72,45,0.14)] focus:outline-none;
+  }
+  .field-label {
+    @apply mb-2.5 block text-sm font-medium text-ink;
+  }
+  /* Чип: radio/checkbox спрятан в sr-only, выбор подсвечивается через
+     :has(:checked) или aria-pressed у кнопки. */
+  .chip {
+    @apply inline-flex min-h-11 cursor-pointer select-none items-center justify-center gap-2 rounded-full border border-hair-ink bg-surface/60 px-4 text-sm text-ink transition-[background-color,color,border-color] duration-200 hover:border-ink/50 has-[:checked]:border-espresso has-[:checked]:bg-espresso has-[:checked]:text-canvas has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-clay aria-pressed:border-espresso aria-pressed:bg-espresso aria-pressed:text-canvas;
+  }
+  /* Сегментный переключатель (вещи/образы, полный образ/по частям). */
+  .segmented {
+    @apply inline-flex gap-1 rounded-full border border-hair-ink bg-surface/70 p-1;
+  }
+  .segmented > button {
+    @apply min-h-10 rounded-full px-4 text-sm text-ink-soft transition-colors duration-200 hover:text-ink aria-pressed:bg-espresso aria-pressed:text-canvas sm:px-5;
+  }
+
+  /* --- Поверхности ------------------------------------------------------ */
+  .panel {
+    @apply rounded-3xl border border-hair-ink bg-surface;
+  }
+  .media-well {
+    @apply relative overflow-hidden rounded-2xl bg-media;
+  }
+  /* Товарное фото на подложке: белый/серый фон снимка уходит в тон. */
+  .media-product {
+    @apply object-contain p-[9%] mix-blend-multiply brightness-[1.07] contrast-[1.05];
+  }
+}
+
 .legal-copy h2 {
   margin-bottom: 1rem;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 1.5rem;
-  line-height: 1.4;
+  font-size: 1.625rem;
+  line-height: 1.3;
 }
 .legal-copy p + p {
   margin-top: 1rem;
 }
 .legal-copy a {
+  color: var(--clay);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -128,11 +236,13 @@ h3 {
   border-bottom: 1px solid var(--hair-ink);
   vertical-align: top;
 }
+
 button,
 a,
 input,
 select,
-textarea {
+textarea,
+label {
   -webkit-tap-highlight-color: transparent;
 }
 button,
@@ -141,21 +251,34 @@ a {
 }
 :where(a, button, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--clay);
-  outline-offset: 4px;
+  outline-offset: 3px;
 }
 button:not(:disabled),
-summary {
+summary,
+select {
   cursor: pointer;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+select.field {
+  appearance: none;
+  padding-right: 2.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23685b51' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
 }
 .skip-link {
   position: fixed;
   left: 1rem;
   top: 1rem;
-  z-index: 50;
+  z-index: 60;
   transform: translateY(-200%);
+  border-radius: 9999px;
   background: var(--espresso);
   color: var(--canvas);
-  padding: 1rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
 }
 .skip-link:focus {
   transform: translateY(0);
@@ -174,100 +297,15 @@ summary {
   -ms-overflow-style: none;
 }
 
-html {
-  scroll-behavior: smooth;
+/* Ссылки «к якорю» не прячутся под фиксированной шапкой. */
+:target,
+[id] {
+  scroll-margin-top: 6rem;
 }
 
-/* --- Фактуры ------------------------------------------------------------- */
-
-/* Зерно поверх плашек — снимает "цифровую" плоскость заливки. Turbulence
-   зашит data-URI, чтобы не тянуть внешний файл. */
-.grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.35;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E");
-}
-/* На тёмных плашках multiply съедает текстуру — там осветляем. */
-.grain-dark::after {
-  mix-blend-mode: overlay;
-  opacity: 0.42;
-}
-
-/* Вертикальные волоски — намёк на нити основы в ткани. */
-.warp-lines {
-  background-image: linear-gradient(
-    to right,
-    var(--hair-ink) 1px,
-    transparent 1px
-  );
-  background-size: calc(100% / 6) 100%;
-}
-.warp-lines-dark {
-  background-image: linear-gradient(to right, var(--hair) 1px, transparent 1px);
-}
-
-/* --- Типографические приёмы ---------------------------------------------- */
-
-/* Контурный набор: выключенная заливка + обводка. Держит плотность полосы,
-   не перегружая её массой — на гигантских цифрах и одной строке заголовка. */
-.stroke-ink {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--espresso);
-  transition: -webkit-text-stroke-color 0.45s ease;
-}
-.stroke-canvas {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--canvas);
-}
-.stroke-clay {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--clay);
-}
-.group:hover .stroke-ink {
-  -webkit-text-stroke-color: var(--clay);
-}
-
-/* Микро-рубрика над заголовками секций. */
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-}
-.tag::before {
-  content: "";
-  width: 1.75rem;
-  height: 1px;
-  background: var(--clay);
-}
-
-/* Прежняя надрубрика — остаётся для неперерисованных разделов. */
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--clay);
-}
-.eyebrow::before {
-  content: "";
-  width: 1.5rem;
-  height: 2px;
-  background: var(--clay);
-}
-
-/* --- Анимации ------------------------------------------------------------ */
+/* --- Анимации ------------------------------------------------------------
+   Появление — 400–600 мс с мягким выходом, исчезновение быстрее. Двигаем
+   только transform/opacity, ширину и высоту не анимируем. */
 
 @keyframes fade-in-up {
   from {
@@ -279,18 +317,6 @@ html {
     transform: translateY(0);
   }
 }
-
-@keyframes fade-in-scale {
-  from {
-    opacity: 0;
-    transform: scale(1.02);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -299,26 +325,24 @@ html {
     opacity: 1;
   }
 }
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.animate-fade-in-scale {
-  animation: fade-in-scale 0.45s ease both;
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
 }
-.animate-fade-in {
-  animation: fade-in 0.4s ease both;
-}
-
-/* Покарточная задержка появления в сетке каталога — задаётся через inline
-   style (--stagger), чтобы не плодить десятки классов. */
-.stagger-item {
-  animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--stagger, 0) * 45ms);
-}
-
-/* Бегущая строка. Контент дублируется в разметке, поэтому сдвиг ровно на
-   половину трека даёт бесшовный цикл. */
 @keyframes marquee {
   from {
     transform: translateX(0);
@@ -327,49 +351,40 @@ html {
     transform: translateX(-50%);
   }
 }
-.marquee-track {
-  animation: marquee 32s linear infinite;
-}
 
-/* Построчный выезд заголовка из-под маски (родитель — overflow-hidden).
-   Задержка задаётся inline через --d, чтобы строки вскрывались каскадом. */
-@keyframes reveal-line {
-  from {
-    opacity: 0;
-    transform: translateY(110%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s var(--ease-out) both;
 }
-.reveal-line {
-  display: block;
-  animation: reveal-line 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+.animate-fade-in {
+  animation: fade-in 0.4s ease both;
+}
+/* Каскад в героe: задержка задаётся inline через --d (мс). */
+.reveal {
+  animation: rise 0.8s var(--ease-out) both;
   animation-delay: calc(var(--d, 0) * 1ms);
 }
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(26px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.reveal-soft {
-  animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--d, 0) * 1ms);
-}
-
 /* Появление по скроллу без JS. В браузерах без animation-timeline анимация
    отыграет на загрузке — контент всё равно окажется видимым. */
 .on-view {
-  animation: rise 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rise 0.8s var(--ease-out) both;
   animation-timeline: view();
-  animation-range: entry 4% cover 24%;
+  animation-range: entry 0% cover 22%;
+}
+.skeleton {
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgba(251, 248, 242, 0.65) 50%,
+      transparent 70%
+    )
+    var(--canvas-2);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+/* Бегущая строка. Контент дублируется в разметке, поэтому сдвиг ровно на
+   половину трека даёт бесшовный цикл. */
+.marquee-track {
+  animation: marquee 48s linear infinite;
 }
 
 /* Ползунок «до/после»: нативный input растянут на всё фото и невидим — он
@@ -400,13 +415,11 @@ html {
     transition-duration: 0.01ms !important;
   }
   .animate-fade-in-up,
-  .animate-fade-in-scale,
   .animate-fade-in,
-  .stagger-item,
+  .reveal,
+  .on-view,
   .marquee-track,
-  .reveal-line,
-  .reveal-soft,
-  .on-view {
+  .skeleton {
     animation: none;
   }
 }

@@ -142,7 +142,7 @@ export function AdminApp() {
     <div className="mx-auto w-full max-w-[88rem] flex-1 px-5 pb-24 sm:px-8 lg:px-14">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-hair-ink pb-6">
         <div>
-          <span className="tag text-ink-soft">админка</span>
+          <span className="label text-clay">админка</span>
           <h1 className="mt-3 font-display text-[clamp(1.75rem,5vw,3rem)] uppercase leading-[0.95] tracking-[-0.02em]">
             {tab === "privacy"
               ? "Конфиденциальность"
@@ -272,7 +272,7 @@ function LoginGate({
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-5 py-32">
-      <span className="tag text-ink-soft">админка</span>
+      <span className="label text-clay">админка</span>
       <h1 className="mt-3 font-display text-3xl uppercase tracking-tight">
         Вход
       </h1>
