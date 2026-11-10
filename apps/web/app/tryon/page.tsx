@@ -5,6 +5,13 @@ import { catalogItems, looks } from "@/lib/schema";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { PageHeading } from "@/components/PageHeading";
 import { TryonForm } from "@/components/tryon/TryonForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Виртуальная примерка",
+  description:
+    "Примерь готовый образ или собери свой: нейросеть наденет вещи на твоё фото или модель по анкете за один раз.",
+};
 
 export default async function TryonPage() {
   const [items, lookRows] = await Promise.all([

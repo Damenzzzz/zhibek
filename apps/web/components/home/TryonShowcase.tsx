@@ -17,7 +17,7 @@ export function TryonShowcase() {
       />
       <div className="site-container relative grid items-center gap-14 lg:grid-cols-2 lg:gap-24">
         <div className="mx-auto w-full max-w-md lg:max-w-lg">
-          <BeforeAfter before="/hero-model.png" after="/tryon-demo.png" />
+          <BeforeAfter before="/hero-before.webp" after="/hero-after.webp" />
         </div>
         <div>
           <span className="label text-saffron">Новый взгляд на привычное</span>

@@ -22,9 +22,44 @@ const golos = Golos_Text({
   display: "swap",
 });
 
+// Абсолютные адреса для превью в соцсетях и мессенджерах. На Vercel берём
+// домен продакшена из системной переменной, иначе — текущий адрес сайта.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  ? process.env.NEXT_PUBLIC_SITE_URL
+  : process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://web-eight-lake-89.vercel.app";
+
+const description =
+  "Виртуальная примерочная с AI: выбирай готовые образы и смотри, как они сидят на тебе — со своим фото или моделью по анкете. Без регистрации.";
+
 export const metadata: Metadata = {
-  title: "Smart Fashion — примерка образов",
-  description: "Каталог образов и виртуальная примерка одежды Smart Fashion",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Smart Fashion — виртуальная примерочная с AI",
+    template: "%s — Smart Fashion",
+  },
+  description,
+  applicationName: "Smart Fashion",
+  keywords: [
+    "виртуальная примерка",
+    "примерка одежды онлайн",
+    "AI примерочная",
+    "готовые образы",
+    "Smart Fashion",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    siteName: "Smart Fashion",
+    title: "Smart Fashion — найди образ, узнай себя",
+    description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Smart Fashion — найди образ, узнай себя",
+    description,
+  },
 };
 
 export const viewport: Viewport = {

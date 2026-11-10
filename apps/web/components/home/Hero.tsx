@@ -42,6 +42,7 @@ export function Hero() {
             сочетания и смотри, как они выглядят на твоей модели.
           </p>
           <div
+            id="hero-cta"
             className="reveal mt-9 flex flex-wrap gap-3"
             style={{ "--d": 240 } as React.CSSProperties}
           >
@@ -77,9 +78,9 @@ export function Hero() {
           {/* Арка — «после»: модель уже в образе. Наклоняется за курсором,
               по фото бежит линия «сканирования» нейросети. */}
           <Tilt max={5} className="rounded-t-[999px] rounded-b-3xl">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-t-[999px] rounded-b-3xl bg-media shadow-lift">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-t-[999px] rounded-b-3xl bg-media shadow-lift ring-1 ring-hair-ink">
               <SkeletonImage
-                src="/tryon-demo.png"
+                src="/hero-after.webp"
                 alt="Модель в полном образе: жилет, блузка и классические брюки"
                 priority
                 sizes="(max-width: 1024px) 90vw, 32rem"
@@ -100,7 +101,7 @@ export function Hero() {
           <figure className="float-soft absolute -left-4 bottom-16 z-20 w-[34%] -rotate-[5deg] rounded-xl bg-surface p-1.5 pb-0 shadow-lift sm:-left-10">
             <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-media">
               <SkeletonImage
-                src="/hero-model.png"
+                src="/hero-before.webp"
                 alt="Исходное фото модели до примерки"
                 sizes="160px"
                 priority

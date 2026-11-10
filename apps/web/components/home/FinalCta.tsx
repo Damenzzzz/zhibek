@@ -36,7 +36,7 @@ export function FinalCta({
 }) {
   const picks = looks.slice(0, 3);
   return (
-    <section className="bg-canvas py-16 sm:py-24">
+    <section id="final-cta" className="bg-canvas py-16 sm:py-24">
       <div className="site-container">
         <div className="group/cta relative overflow-hidden rounded-[2rem] bg-espresso px-6 py-14 text-canvas shadow-lift sm:px-12 sm:py-16 lg:px-16 lg:py-20">
           {/* Мягкое свечение вместо плоской заливки */}

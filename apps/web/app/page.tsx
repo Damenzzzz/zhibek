@@ -10,6 +10,7 @@ import { About } from "@/components/home/About";
 import { TryonShowcase } from "@/components/home/TryonShowcase";
 import { FinalCta } from "@/components/home/FinalCta";
 import { Questions } from "@/components/home/Questions";
+import { MobileStickyCta } from "@/components/home/MobileStickyCta";
 
 // Каталог синхронизируется в БД (Turso) на старте сервера (instrumentation.ts),
 // а не во время сборки. Без этого главная пререндерилась статикой на этапе
@@ -40,6 +41,7 @@ export default async function HomePage() {
       <About itemCount={items.length} lookCount={outfits.length} />
       <Questions />
       <FinalCta looks={outfits} itemCount={items.length} />
+      <MobileStickyCta />
     </main>
   );
 }

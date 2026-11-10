@@ -5,6 +5,13 @@ import { isCatalogCategory } from "@/lib/categories";
 import { buildCatalogLooks } from "@/lib/catalogView";
 import { CatalogExplorer } from "@/components/catalog/CatalogExplorer";
 import { PageHeading } from "@/components/PageHeading";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Коллекция",
+  description:
+    "Готовые образы и отдельные вещи: верх, низ, верхняя одежда, обувь, сумки и аксессуары. Выбери и примерь на себе.",
+};
 
 export default async function CatalogPage({
   searchParams,

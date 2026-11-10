@@ -10,6 +10,31 @@ import { AddToFittingRoomButton } from "@/components/catalog/AddToFittingRoomBut
 import { ProductGallery } from "@/components/catalog/ProductGallery";
 import { ItemStrip } from "@/components/catalog/ItemStrip";
 import { getMatchingItems } from "@/lib/matching";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const [item] = await db
+    .select()
+    .from(catalogItems)
+    .where(eq(catalogItems.id, id));
+  if (!item) return { title: "Вещь не найдена" };
+  const label =
+    CATEGORY_LABELS[item.category as CatalogCategory] ?? item.category;
+  const name = item.description
+    ? item.description.charAt(0).toUpperCase() + item.description.slice(1)
+    : label;
+  const [cover] = catalogImageUrls(item.images, item.imagePath);
+  return {
+    title: name,
+    description: `${label}${item.color ? `, ${item.color}` : ""}. Примерь на себе в виртуальной примерочной Smart Fashion.`,
+    openGraph: cover ? { images: [{ url: cover, alt: name }] } : undefined,
+  };
+}
 
 export default async function ProductPage({
   params,

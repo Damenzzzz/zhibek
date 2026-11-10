@@ -208,7 +208,7 @@ h3 {
   }
   /* Товарное фото на подложке: белый/серый фон снимка уходит в тон. */
   .media-product {
-    @apply object-contain p-[9%] mix-blend-multiply brightness-[1.07] contrast-[1.05];
+    @apply object-contain p-[9%] mix-blend-multiply;
   }
 }
 
