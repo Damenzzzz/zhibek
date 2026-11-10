@@ -23,7 +23,7 @@ export function CartDrawer({ trigger }: { trigger: ReactNode }) {
           <div className="border-b border-hair-ink px-6 py-5">
             <div className="flex items-center justify-between">
               <Dialog.Title className="font-display text-[1.75rem] leading-tight">
-                Твоя <span className="italic">примерочная</span>
+                Твоя <span className="text-clay">примерочная</span>
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button

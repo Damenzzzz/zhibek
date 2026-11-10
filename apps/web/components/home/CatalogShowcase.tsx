@@ -12,7 +12,7 @@ export function CatalogShowcase({ looks }: { looks: CatalogLook[] }) {
           <div className="max-w-2xl">
             <span className="label text-clay">Собрано, чтобы вдохновлять</span>
             <h2 className="section-title mt-5">
-              Образы <span className="accent-italic">с характером</span>
+              Образы <span className="headline-accent">с характером</span>
             </h2>
             <p className="lead mt-5 max-w-lg">
               Готовые комплекты от верха до сумки. Выбери любой — и примерь

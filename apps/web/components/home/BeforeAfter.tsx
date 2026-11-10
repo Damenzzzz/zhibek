@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MoveHorizontal } from "lucide-react";
 import { SkeletonImage } from "@/components/SkeletonImage";
 
@@ -15,10 +15,52 @@ interface BeforeAfterProps {
 // отдельный слой без событий, позиция обоих берётся из одного значения.
 export function BeforeAfter({ before, after }: BeforeAfterProps) {
   const [pos, setPos] = useState(50);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const touched = useRef(false);
+
+  // Когда шторка впервые попадает в кадр, она сама «проезжает» туда-обратно —
+  // так сразу видно, что её можно двигать. Любое касание останавливает демо.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return;
+    let raf = 0;
+    const stops = [50, 18, 82, 50];
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        const start = performance.now() + 300;
+        const segment = 900;
+        const tick = (now: number) => {
+          if (touched.current) return;
+          const t = Math.max(0, now - start);
+          const i = Math.min(stops.length - 2, Math.floor(t / segment));
+          const local = Math.min(1, (t - i * segment) / segment);
+          const eased =
+            local < 0.5 ? 4 * local ** 3 : 1 - (-2 * local + 2) ** 3 / 2;
+          setPos(stops[i] + (stops[i + 1] - stops[i]) * eased);
+          if (t < segment * (stops.length - 1))
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+      },
+      { threshold: 0.55 },
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   return (
     <figure>
-      <div className="relative aspect-[3/4] w-full select-none overflow-hidden rounded-3xl bg-media shadow-lift focus-within:ring-2 focus-within:ring-canvas focus-within:ring-offset-4 focus-within:ring-offset-espresso">
+      <div
+        ref={boxRef}
+        onPointerDown={() => (touched.current = true)}
+        className="relative aspect-[3/4] w-full select-none overflow-hidden rounded-3xl bg-media shadow-lift focus-within:ring-2 focus-within:ring-canvas focus-within:ring-offset-4 focus-within:ring-offset-espresso"
+      >
         <SkeletonImage
           src={before}
           alt="До примерки"
@@ -61,10 +103,14 @@ export function BeforeAfter({ before, after }: BeforeAfterProps) {
           type="range"
           min={0}
           max={100}
-          value={pos}
-          onChange={(e) => setPos(Number(e.target.value))}
+          value={Math.round(pos)}
+          onChange={(e) => {
+            touched.current = true;
+            setPos(Number(e.target.value));
+          }}
+          onKeyDown={() => (touched.current = true)}
           aria-label="Сравнить фото до и после примерки"
-          aria-valuetext={`Показано ${100 - pos}% результата`}
+          aria-valuetext={`Показано ${100 - Math.round(pos)}% результата`}
           className="slider-raw absolute inset-0 z-30 h-full w-full cursor-ew-resize appearance-none bg-transparent opacity-0"
         />
       </div>

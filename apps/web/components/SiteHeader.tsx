@@ -50,10 +50,12 @@ export function SiteHeader() {
           <Link
             href="/"
             aria-label="Smart Fashion — главная"
-            className="shrink-0 font-display text-[1.375rem] leading-none tracking-[-0.01em]"
+            className="wordmark group shrink-0 text-[1.0625rem] sm:text-lg"
           >
-            Smart <span className="italic">Fashion</span>
-            <span className="text-clay">.</span>
+            Smart Fashion
+            <span className="inline-block text-clay transition-transform duration-300 group-hover:scale-150">
+              .
+            </span>
           </Link>
           <nav
             aria-label="Основная навигация"
@@ -130,9 +132,8 @@ export function SiteHeader() {
                 <Dialog.Overlay className="fixed inset-0 z-40 bg-espresso/40 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
                 <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col overflow-y-auto bg-canvas px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 shadow-lift data-[state=open]:animate-fade-in">
                   <div className="flex h-14 items-center justify-between">
-                    <Dialog.Title className="font-display text-[1.375rem]">
-                      Smart <span className="italic">Fashion</span>
-                      <span className="text-clay">.</span>
+                    <Dialog.Title className="wordmark text-lg">
+                      Smart Fashion<span className="text-clay">.</span>
                     </Dialog.Title>
                     <Dialog.Close asChild>
                       <button aria-label="Закрыть меню" className="icon-button">
@@ -158,7 +159,7 @@ export function SiteHeader() {
                           aria-current={
                             isActive(link.href) ? "page" : undefined
                           }
-                          className="group flex items-center justify-between border-b border-hair-ink py-4 font-display text-[1.75rem] leading-tight aria-[current=page]:text-clay"
+                          className="group flex items-center justify-between border-b border-hair-ink py-4 font-display text-2xl leading-tight aria-[current=page]:text-clay"
                         >
                           <span>
                             <span className="mr-3 align-middle font-sans text-xs tabular-nums text-ink-soft">
@@ -177,7 +178,7 @@ export function SiteHeader() {
                       <ArrowUpRight className="size-4" />
                     </Link>
                   </Dialog.Close>
-                  <p className="mt-auto pt-8 font-display text-lg italic text-ink-soft">
+                  <p className="mt-auto pt-8 font-display text-lg text-ink-soft">
                     Примеряй новое. Оставайся собой.
                   </p>
                 </Dialog.Content>

@@ -19,7 +19,7 @@ export default function FittingRoomPage() {
         label="Подборка"
         title={
           <>
-            Всё, что <span className="accent-italic">приглянулось.</span>
+            Всё, что <span className="headline-accent">приглянулось.</span>
           </>
         }
         description="Сохраняй вещи, возвращайся к любимым сочетаниям и собирай следующий образ."
@@ -51,7 +51,7 @@ export default function FittingRoomPage() {
               <Bookmark className="size-7 text-clay" strokeWidth={1.4} />
             </span>
             <h2 className="mt-7 font-display text-3xl sm:text-4xl">
-              Начнём <span className="accent-italic">с вдохновения?</span>
+              Начнём <span className="headline-accent">с вдохновения?</span>
             </h2>
             <p className="mx-auto mt-4 max-w-sm text-pretty text-[15px] leading-relaxed text-ink-soft">
               {ids.length
@@ -110,7 +110,7 @@ export default function FittingRoomPage() {
             <aside className="panel p-6 shadow-soft sm:p-7 lg:sticky lg:top-28">
               <span className="label text-clay">Следующий шаг</span>
               <h2 className="mt-4 font-display text-3xl leading-tight">
-                Посмотрим <span className="italic">на тебе?</span>
+                Посмотрим <span className="text-clay">на тебе?</span>
               </h2>
               <p className="mt-4 text-pretty text-[15px] leading-relaxed text-ink-soft">
                 Перенесём в примерку по одной вещи каждой категории. Там можно

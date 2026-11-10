@@ -39,7 +39,7 @@ export default async function HomePage() {
       <HowItWorks />
       <About itemCount={items.length} lookCount={outfits.length} />
       <Questions />
-      <FinalCta />
+      <FinalCta looks={outfits} itemCount={items.length} />
     </main>
   );
 }

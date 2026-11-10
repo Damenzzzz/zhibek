@@ -30,7 +30,7 @@ export function HowItWorks() {
           <div className="max-w-2xl">
             <span className="label text-clay">Всё проще, чем кажется</span>
             <h2 className="section-title mt-5">
-              Три шага <span className="accent-italic">к своему образу</span>
+              Три шага <span className="headline-accent">к своему образу</span>
             </h2>
           </div>
           <p className="max-w-xs text-pretty text-[15px] leading-relaxed text-ink-soft">
@@ -46,13 +46,13 @@ export function HowItWorks() {
           {steps.map(({ icon: Icon, title, text, label }, i) => (
             <li
               key={title}
-              className="on-view panel relative flex flex-col p-7 shadow-soft sm:p-8"
+              className="on-view group panel relative flex flex-col p-7 shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-lift sm:p-8"
             >
               <div className="flex items-center justify-between">
-                <span className="relative flex size-12 items-center justify-center rounded-full bg-clay text-canvas">
+                <span className="relative flex size-12 items-center justify-center rounded-full bg-clay text-canvas transition-transform duration-500 group-hover:rotate-[360deg]">
                   <Icon strokeWidth={1.5} className="size-5" />
                 </span>
-                <span className="font-display text-5xl italic leading-none text-clay/25">
+                <span className="font-display text-5xl leading-none tracking-[-0.03em] text-clay/25 transition-colors duration-300 group-hover:text-clay/60">
                   0{i + 1}
                 </span>
               </div>

@@ -33,7 +33,7 @@ export function PageHeading({
         </nav>
         <div className="mt-6 flex flex-wrap items-end justify-between gap-8">
           <div className="min-w-0 max-w-3xl">
-            <h1 className="break-words text-balance font-display text-[clamp(2.5rem,6vw,4.75rem)] leading-[1.02] tracking-[-0.02em]">
+            <h1 className="break-words text-balance font-display text-[clamp(2.25rem,5.2vw,4.25rem)] leading-[1.06] tracking-[-0.015em]">
               {title}
             </h1>
             <p className="lead mt-5 max-w-xl">{description}</p>

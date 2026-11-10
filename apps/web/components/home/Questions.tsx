@@ -28,7 +28,7 @@ export function Questions() {
           <h2 className="section-title mt-5">
             Вопросы?
             <br />
-            <span className="accent-italic">Всё расскажем.</span>
+            <span className="headline-accent">Всё расскажем.</span>
           </h2>
         </div>
         <div className="border-t border-hair-ink">

@@ -565,7 +565,7 @@ export default function ProfilePage() {
         label="Анкета"
         title={
           <>
-            Начнём <span className="accent-italic">с тебя.</span>
+            Начнём <span className="headline-accent">с тебя.</span>
           </>
         }
         description="Твоё фото или модель по параметрам — выбери удобный способ. Анкета сохранится в этом браузере."

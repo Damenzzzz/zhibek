@@ -1,18 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Serif_Display, Golos_Text } from "next/font/google";
+import { Tenor_Sans, Golos_Text } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
-// Пара на весь сайт: Noto Serif Display — контрастная дидона с кириллицей,
-// вариативным весом и курсивом (курсив терракотой — главный акцент в
-// заголовках). Golos Text — кириллический гротеск под подписи и текст.
-// Prata заменена: у неё одно начертание без курсива, а капс ею читался плохо.
-const serifDisplay = Noto_Serif_Display({
-  variable: "--font-serif-display",
+// Пара на весь сайт: Tenor Sans — тонкий «журнальный» гротеск для логотипа и
+// заголовков (одно начертание 400, курсива нет — font-medium/italic к нему не
+// применять, будет синтетика). Golos Text — кириллический гротеск под текст.
+const tenor = Tenor_Sans({
+  variable: "--font-tenor",
   subsets: ["latin", "cyrillic"],
-  style: ["normal", "italic"],
+  weight: "400",
   display: "swap",
 });
 
@@ -36,9 +35,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ru"
-      className={`${serifDisplay.variable} ${golos.variable} h-full antialiased`}
+      className={`${tenor.variable} ${golos.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <div aria-hidden className="scroll-progress" />
         <SiteHeader />
         <div
           id="page-content"

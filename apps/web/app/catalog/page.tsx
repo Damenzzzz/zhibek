@@ -26,7 +26,7 @@ export default async function CatalogPage({
         label="Коллекция"
         title={
           <>
-            Носи <span className="accent-italic">по-своему.</span>
+            Носи <span className="headline-accent">по-своему.</span>
           </>
         }
         description="Готовые сочетания для вдохновения. Отдельные вещи — для твоих собственных правил."

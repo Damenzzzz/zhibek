@@ -595,7 +595,7 @@ export function TryonForm({
     return (
       <div className="animate-fade-in-up">
         <h2 className="font-display text-3xl leading-tight sm:text-4xl">
-          На ком <span className="accent-italic">примеряем?</span>
+          На ком <span className="headline-accent">примеряем?</span>
         </h2>
         <p className="lead mt-3 max-w-xl">
           Для примерки нужна модель — фигура, на которую нейросеть наденет

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { CountUp } from "@/components/CountUp";
 
 export function About({
   itemCount,
@@ -20,7 +21,7 @@ export function About({
           <span className="label text-clay">Создано в Шымкенте</span>
           <blockquote className="mt-7 font-display text-[clamp(1.75rem,3.2vw,2.75rem)] leading-[1.18] tracking-[-0.01em]">
             <span className="text-clay">«</span>Одежда на фотографии и одежда на
-            тебе — <span className="italic">две разные истории.</span>
+            тебе — <span className="text-clay">две разные истории.</span>
             <span className="text-clay">»</span>
           </blockquote>
           <p className="mt-6 text-[15px] text-ink-soft">
@@ -30,7 +31,7 @@ export function About({
         </div>
         <div className="lg:pt-12">
           <h2 className="section-title max-w-xl">
-            Больше свободы <span className="accent-italic">быть собой.</span>
+            Больше свободы <span className="headline-accent">быть собой.</span>
           </h2>
           <div className="mt-7 grid gap-5 text-pretty text-[15px] leading-relaxed text-ink-soft sm:grid-cols-2">
             <p>
@@ -51,8 +52,8 @@ export function About({
                 <dt className="mt-2 text-[13px] leading-snug text-ink-soft">
                   {stat.label}
                 </dt>
-                <dd className="font-display text-4xl tabular-nums leading-none sm:text-5xl">
-                  {stat.value}
+                <dd className="font-display text-4xl leading-none sm:text-5xl">
+                  <CountUp value={stat.value} />
                 </dd>
               </div>
             ))}

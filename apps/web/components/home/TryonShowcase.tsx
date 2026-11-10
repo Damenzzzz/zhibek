@@ -24,7 +24,7 @@ export function TryonShowcase() {
           <h2 className="section-title mt-6">
             Тот же человек.
             <br />
-            <span className="font-display italic text-canvas-dim">
+            <span className="text-saffron">
               Совсем другой образ.
             </span>
           </h2>

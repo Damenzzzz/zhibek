@@ -22,12 +22,11 @@ export async function SiteFooter() {
           <div>
             <Link
               href="/"
-              className="font-display text-4xl leading-none tracking-[-0.01em] sm:text-5xl"
+              className="wordmark text-[1.75rem] sm:text-[2.125rem]"
             >
-              Smart <span className="italic">Fashion</span>
-              <span className="text-clay">.</span>
+              Smart Fashion<span className="text-clay">.</span>
             </Link>
-            <p className="mt-6 max-w-xs font-display text-xl italic leading-snug text-canvas-dim">
+            <p className="mt-6 max-w-xs font-display text-xl leading-snug text-canvas-dim">
               Примеряй новое.
               <br />
               Оставайся собой.

@@ -105,7 +105,7 @@ export default async function TryonPage() {
         label="Примерка"
         title={
           <>
-            Посмотрим <span className="accent-italic">на тебе?</span>
+            Посмотрим <span className="headline-accent">на тебе?</span>
           </>
         }
         description="Готовый комплект или твоё собственное сочетание. Выбирай детали и создавай образ целиком за одну примерку."
