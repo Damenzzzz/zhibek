@@ -5,6 +5,13 @@ import { catalogItems, looks } from "@/lib/schema";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { PageHeading } from "@/components/PageHeading";
 import { TryonForm } from "@/components/tryon/TryonForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Виртуальная примерка",
+  description:
+    "Примерь готовый образ или собери свой: нейросеть наденет вещи на твоё фото или модель по анкете за один раз.",
+};
 
 export default async function TryonPage() {
   const [items, lookRows] = await Promise.all([
@@ -102,16 +109,20 @@ export default async function TryonPage() {
   return (
     <div className="flex flex-1 flex-col bg-canvas">
       <PageHeading
-        label="Виртуальная примерочная"
-        title="Посмотрим на тебе?"
+        label="Примерка"
+        title={
+          <>
+            Посмотрим <span className="headline-accent">на тебе?</span>
+          </>
+        }
         description="Готовый комплект или твоё собственное сочетание. Выбирай детали и создавай образ целиком за одну примерку."
       />
 
-      <main className="mx-auto w-full max-w-[88rem] flex-1 px-5 pb-20 pt-10 sm:px-8 lg:px-14">
+      <main className="site-container flex-1 pb-20 pt-10 sm:pt-14">
         <Suspense
           fallback={
             <div
-              className="h-64 bg-canvas-2"
+              className="skeleton h-64 rounded-3xl"
               aria-label="Загрузка примерочной"
             />
           }

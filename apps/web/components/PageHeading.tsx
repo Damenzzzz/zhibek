@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 export function PageHeading({
   label,
@@ -8,30 +8,35 @@ export function PageHeading({
   children,
 }: {
   label: string;
-  title: string;
+  title: React.ReactNode;
   description: string;
   children?: React.ReactNode;
 }) {
   return (
-    <header className="border-b border-hair-ink bg-canvas-2/50 pb-9 pt-28 sm:pb-10 sm:pt-32">
-      <div className="site-container">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <span className="tag text-ink-soft">{label}</span>
-          <Link
-            href="/catalog"
-            className="hidden items-center gap-2 text-xs text-ink-soft hover:text-clay sm:flex"
-          >
-            Коллекция Smart Fashion <ArrowUpRight className="size-3.5" />
+    <header className="relative overflow-hidden border-b border-hair-ink bg-canvas-2/45 pb-10 pt-28 sm:pb-14 sm:pt-32">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-32 -top-24 h-80 w-80 rounded-full bg-clay-soft/60 blur-3xl"
+      />
+      <div className="site-container relative">
+        <nav
+          aria-label="Хлебные крошки"
+          className="flex items-center gap-1.5 text-[13px] text-ink-soft"
+        >
+          <Link href="/" className="transition-colors hover:text-clay">
+            Главная
           </Link>
-        </div>
-        <div className="flex flex-wrap items-end justify-between gap-6">
+          <ChevronRight className="size-3.5" aria-hidden />
+          <span aria-current="page" className="text-ink">
+            {label}
+          </span>
+        </nav>
+        <div className="mt-6 flex flex-wrap items-end justify-between gap-8">
           <div className="min-w-0 max-w-3xl">
-            <h1 className="break-words text-balance font-display text-4xl leading-tight sm:text-5xl lg:text-6xl">
+            <h1 className="break-words text-balance font-display text-[clamp(2.25rem,5.2vw,4.25rem)] leading-[1.06] tracking-[-0.015em]">
               {title}
             </h1>
-            <p className="mt-5 max-w-xl text-pretty text-sm leading-relaxed text-ink-soft sm:text-base">
-              {description}
-            </p>
+            <p className="lead mt-5 max-w-xl">{description}</p>
           </div>
           {children}
         </div>

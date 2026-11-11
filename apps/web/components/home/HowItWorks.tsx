@@ -1,4 +1,6 @@
-import { Camera, Layers, ScanLine } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Camera, Layers, ScanLine } from "lucide-react";
+
 const steps = [
   {
     icon: Layers,
@@ -19,39 +21,55 @@ const steps = [
     label: "Примерить",
   },
 ];
+
 export function HowItWorks() {
   return (
-    <section
-      id="how-it-works"
-      className="section-space scroll-mt-24 border-y border-hair-ink bg-canvas-2/40"
-    >
+    <section id="how-it-works" className="section-space bg-canvas-2/45">
       <div className="site-container">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <span className="tag text-ink-soft">Всё проще, чем кажется</span>
-            <h2 className="section-title mt-5">Три шага к своему образу</h2>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-2xl">
+            <span className="label text-clay">Всё проще, чем кажется</span>
+            <h2 className="section-title mt-5">
+              Три шага <span className="headline-accent">к своему образу</span>
+            </h2>
           </div>
-          <p className="max-w-xs text-pretty text-sm leading-relaxed text-ink-soft">
+          <p className="max-w-xs text-pretty text-[15px] leading-relaxed text-ink-soft">
             Без кабинок и регистрации. Только ты, одежда и немного технологий.
           </p>
         </div>
-        <div className="mt-10 grid gap-7 md:grid-cols-3">
+        <ol className="relative mt-14 grid gap-5 md:grid-cols-3">
+          {/* Нить, соединяющая шаги на десктопе */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-[16%] right-[16%] top-[3.25rem] hidden border-t border-dashed border-clay/35 md:block"
+          />
           {steps.map(({ icon: Icon, title, text, label }, i) => (
-            <article key={title} className="border-t border-hair-ink pt-6">
+            <li
+              key={title}
+              className="on-view group panel relative flex flex-col p-7 shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-lift sm:p-8"
+            >
               <div className="flex items-center justify-between">
-                <Icon strokeWidth={1.4} className="size-7 text-clay" />
-                <span className="text-xs tabular-nums text-ink-soft">
-                  0{i + 1} / {label}
+                <span className="relative flex size-12 items-center justify-center rounded-full bg-clay text-canvas transition-transform duration-500 group-hover:rotate-[360deg]">
+                  <Icon strokeWidth={1.5} className="size-5" />
+                </span>
+                <span className="font-display text-5xl leading-none tracking-[-0.03em] text-clay/25 transition-colors duration-300 group-hover:text-clay/60">
+                  0{i + 1}
                 </span>
               </div>
-              <h3 className="mt-6 text-balance font-display text-xl lg:text-2xl">
+              <span className="label mt-8 text-ink-soft">{label}</span>
+              <h3 className="mt-3 font-display text-2xl leading-snug">
                 {title}
               </h3>
-              <p className="mt-3 max-w-sm text-pretty text-sm leading-relaxed text-ink-soft">
+              <p className="mt-3 text-pretty text-[15px] leading-relaxed text-ink-soft">
                 {text}
               </p>
-            </article>
+            </li>
           ))}
+        </ol>
+        <div className="mt-10 flex justify-center">
+          <Link href="/tryon" className="button-dark">
+            Начать с первого шага <ArrowUpRight className="size-4" />
+          </Link>
         </div>
       </div>
     </section>

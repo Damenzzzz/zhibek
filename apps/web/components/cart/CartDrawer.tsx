@@ -18,24 +18,24 @@ export function CartDrawer({ trigger }: { trigger: ReactNode }) {
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/35" />
-        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-canvas shadow-xl">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-espresso/40 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-canvas shadow-lift data-[state=open]:animate-fade-in">
           <div className="border-b border-hair-ink px-6 py-5">
             <div className="flex items-center justify-between">
-              <Dialog.Title className="font-display text-2xl">
-                Твоя примерочная
+              <Dialog.Title className="font-display text-[1.75rem] leading-tight">
+                Твоя <span className="text-clay">примерочная</span>
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button
                   type="button"
                   aria-label="Закрыть примерочную"
-                  className="flex size-11 items-center justify-center rounded-full hover:bg-canvas-2"
+                  className="icon-button -mr-2"
                 >
                   <X className="size-5" />
                 </button>
               </Dialog.Close>
             </div>
-            <Dialog.Description className="mt-2 text-xs leading-relaxed text-ink-soft">
+            <Dialog.Description className="mt-1 text-sm leading-relaxed text-ink-soft">
               Сохраняй сочетания. Примеряй, когда захочется.
             </Dialog.Description>
           </div>
@@ -43,7 +43,7 @@ export function CartDrawer({ trigger }: { trigger: ReactNode }) {
             {loading ? (
               <div aria-label="Загружаем вещи" className="space-y-4">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-28 rounded-xl bg-canvas-2" />
+                  <div key={i} className="skeleton h-28 rounded-2xl" />
                 ))}
               </div>
             ) : error ? (
@@ -59,11 +59,13 @@ export function CartDrawer({ trigger }: { trigger: ReactNode }) {
               </div>
             ) : !items.length ? (
               <div className="flex min-h-64 flex-col items-center justify-center text-center">
-                <ShoppingBag className="size-9 text-clay" strokeWidth={1.2} />
-                <h2 className="mt-5 font-display text-2xl">
+                <span className="flex size-16 items-center justify-center rounded-full bg-clay/10">
+                  <ShoppingBag className="size-7 text-clay" strokeWidth={1.4} />
+                </span>
+                <h2 className="mt-6 font-display text-2xl">
                   Место для твоих находок
                 </h2>
-                <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+                <p className="mt-3 max-w-xs text-[15px] leading-relaxed text-ink-soft">
                   Сохраняй понравившиеся вещи значком закладки в каталоге.
                 </p>
                 <Dialog.Close asChild>
@@ -73,34 +75,37 @@ export function CartDrawer({ trigger }: { trigger: ReactNode }) {
                 </Dialog.Close>
               </div>
             ) : (
-              <ul className="space-y-5">
+              <ul className="space-y-3">
                 {items.map((item) => (
                   <li
                     key={item.id}
-                    className="flex gap-4 border-b border-hair-ink pb-5"
+                    className="flex gap-4 rounded-2xl border border-hair-ink bg-surface p-2.5"
                   >
                     <Dialog.Close asChild>
                       <Link
                         href={`/catalog/${item.id}`}
-                        className="relative aspect-[3/4] w-20 shrink-0 bg-canvas-2"
+                        className="media-well aspect-[3/4] w-20 shrink-0 rounded-xl"
                       >
                         <SkeletonImage
                           src={catalogImageUrl(item.imagePath)}
                           alt={item.description ?? item.category}
                           sizes="80px"
-                          className="object-contain"
+                          className="media-product p-1.5"
+                          placeholderClassName="bg-media"
                         />
                       </Link>
                     </Dialog.Close>
-                    <div className="min-w-0 flex-1 py-2">
-                      <p className="line-clamp-2 text-sm first-letter:uppercase">
+                    <div className="min-w-0 flex-1 py-1.5">
+                      <p className="line-clamp-2 text-[15px] leading-snug first-letter:uppercase">
                         {item.description ?? item.category}
                       </p>
-                      <p className="mt-2 text-xs text-ink-soft">{item.color}</p>
+                      <p className="mt-1 text-[13px] text-ink-soft first-letter:uppercase">
+                        {item.color}
+                      </p>
                       <button
                         type="button"
                         onClick={() => removeFittingRoomItem(item.id)}
-                        className="mt-3 min-h-9 text-xs text-ink-soft underline underline-offset-4"
+                        className="mt-1 inline-flex min-h-10 items-center text-[13px] text-ink-soft underline underline-offset-4 hover:text-clay"
                       >
                         Убрать из подборки
                       </button>
@@ -110,7 +115,7 @@ export function CartDrawer({ trigger }: { trigger: ReactNode }) {
               </ul>
             )}
             {missing > 0 && (
-              <p className="mt-4 text-xs text-ink-soft">
+              <p className="mt-4 text-[13px] text-ink-soft">
                 Часть сохранённых вещей больше недоступна в каталоге.
               </p>
             )}
@@ -132,7 +137,7 @@ export function CartDrawer({ trigger }: { trigger: ReactNode }) {
                   Вся подборка
                 </Link>
               </Dialog.Close>
-              <p className="text-center text-[11px] text-ink-soft">
+              <p className="text-center text-[13px] text-ink-soft">
                 Выберем по одной вещи каждой категории.
               </p>
             </div>

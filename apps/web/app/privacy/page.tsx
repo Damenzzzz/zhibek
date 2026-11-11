@@ -3,7 +3,7 @@ import { LegalDocument } from "@/components/LegalDocument";
 import { PrivacyRequestForm } from "@/components/PrivacyRequestForm";
 import { getLegalSettings } from "@/lib/legalSettings";
 export const metadata = {
-  title: "Политика конфиденциальности — Smart Fashion",
+  title: "Политика конфиденциальности",
 };
 export const dynamic = "force-dynamic";
 export default async function PrivacyPage() {

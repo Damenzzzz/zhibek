@@ -33,87 +33,98 @@ export function PrivacyControls() {
         <button
           type="button"
           onClick={showSettings}
-          className="min-h-9 text-xs text-canvas-dim underline underline-offset-4"
+          className="inline-flex min-h-10 items-center underline decoration-canvas-dim/50 underline-offset-4 hover:text-canvas"
         >
           Настройки cookie
         </button>
       </Dialog.Trigger>
+      {/* Компактная карточка в углу: не перекрывает первый экран и не
+          мешает листать, пока человек не решил. */}
       {raw !== "server" && !choice && !open && (
         <section
           aria-label="Настройки конфиденциальности"
-          className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-4xl rounded-2xl border border-hair-ink bg-canvas p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink shadow-lg sm:inset-x-6 sm:bottom-6 sm:p-6"
+          className="fixed inset-x-3 bottom-3 z-40 animate-fade-in-up rounded-2xl border border-hair-ink bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-ink shadow-lift sm:inset-x-auto sm:bottom-5 sm:left-5 sm:max-w-[25rem] sm:p-5"
         >
           <div className="flex gap-3">
-            <ShieldCheck className="mt-1 size-5 shrink-0 text-clay" />
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-clay/10">
+              <ShieldCheck className="size-[1.125rem] text-clay" strokeWidth={1.75} />
+            </span>
             <div>
-              <h2 className="text-sm font-medium">Твой выбор важен</h2>
-              <p className="mt-2 text-pretty text-xs leading-relaxed text-ink-soft">
-                Используем необходимые cookie и хранилище браузера для работы
-                сайта. Необязательная аналитика помогает улучшать Smart Fashion
-                и включается только с твоего разрешения.{" "}
-                <Link href="/cookies" className="underline underline-offset-2">
+              <h2 className="text-[15px] font-medium leading-snug">
+                Твой выбор важен
+              </h2>
+              <p className="mt-1.5 text-pretty text-[13px] leading-relaxed text-ink-soft">
+                Необходимые cookie нужны для работы сайта. Аналитика — только с
+                твоего разрешения.{" "}
+                <Link
+                  href="/cookies"
+                  className="text-ink underline underline-offset-2"
+                >
                   Подробнее
                 </Link>
               </p>
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2 sm:justify-end">
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <button
               type="button"
-              className="button-secondary flex-1 sm:flex-none"
-              onClick={() => save(false)}
-            >
-              Только необходимые
-            </button>
-            <button
-              type="button"
-              className="button-secondary flex-1 sm:flex-none"
-              onClick={showSettings}
-            >
-              Настроить
-            </button>
-            <button
-              type="button"
-              className="button-primary flex-1 sm:flex-none"
+              className="button-primary button-sm col-span-2"
               onClick={() => save(true)}
             >
               Разрешить аналитику
+            </button>
+            <button
+              type="button"
+              className="button-secondary button-sm"
+              onClick={() => save(false)}
+            >
+              Только нужные
+            </button>
+            <button
+              type="button"
+              className="button-secondary button-sm"
+              onClick={showSettings}
+            >
+              Настроить
             </button>
           </div>
         </section>
       )}
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-canvas p-6 text-ink shadow-xl">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-espresso/45 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl bg-surface p-6 text-ink shadow-lift sm:p-8">
           <div className="flex items-center justify-between gap-4">
-            <Dialog.Title className="font-display text-2xl">
-              Твоя конфиденциальность
+            <Dialog.Title className="font-display text-3xl leading-tight">
+              Твоя <span className="text-clay">конфиденциальность</span>
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
                 type="button"
                 aria-label="Закрыть настройки cookie"
-                className="flex size-11 shrink-0 items-center justify-center"
+                className="icon-button -mr-2"
               >
                 <X className="size-5" />
               </button>
             </Dialog.Close>
           </div>
-          <Dialog.Description className="mt-3 text-sm leading-relaxed text-ink-soft">
+          <Dialog.Description className="mt-3 text-[15px] leading-relaxed text-ink-soft">
             Необходимое хранилище обеспечивает работу сайта. Аналитика — по
             желанию. Выбор можно изменить в любой момент.
           </Dialog.Description>
-          <div className="mt-6 space-y-5">
-            <div className="border-t border-hair-ink pt-5">
-              <p className="text-sm font-medium">
-                Необходимые — всегда включены
+          <div className="mt-6 space-y-3">
+            <div className="rounded-2xl border border-hair-ink p-4">
+              <p className="flex items-center justify-between gap-3 text-[15px] font-medium">
+                Необходимые
+                <span className="rounded-full bg-sage/15 px-2.5 py-1 text-xs font-medium text-ink">
+                  Всегда включены
+                </span>
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
                 Твой выбор конфиденциальности, анкета и подборка в браузере;
                 cookie входа только для администраторов.
               </p>
             </div>
-            <label className="flex gap-3 border-t border-hair-ink pt-5">
+            <label className="flex cursor-pointer gap-3 rounded-2xl border border-hair-ink p-4 transition-colors has-[:checked]:border-clay has-[:checked]:bg-clay/5">
               <input
                 type="checkbox"
                 checked={analytics}
@@ -121,10 +132,10 @@ export function PrivacyControls() {
                 className="mt-1 size-5 accent-clay"
               />
               <span>
-                <span className="text-sm font-medium">
+                <span className="text-[15px] font-medium">
                   Необязательная аналитика
                 </span>
-                <span className="mt-2 block text-xs leading-relaxed text-ink-soft">
+                <span className="mt-2 block text-[13px] leading-relaxed text-ink-soft">
                   Случайный идентификатор, посещения и выбор образов. Без
                   рекламных cookie.
                 </span>
@@ -149,7 +160,7 @@ export function PrivacyControls() {
           </div>
           <Link
             href="/privacy"
-            className="mt-5 inline-block min-h-9 text-xs underline underline-offset-4"
+            className="mt-5 inline-flex min-h-10 items-center text-[13px] text-ink-soft underline underline-offset-4 hover:text-ink"
           >
             Политика конфиденциальности
           </Link>

@@ -8,7 +8,7 @@ export function DataConsent({
   onChange?: (value: boolean) => void;
 }) {
   return (
-    <label className="flex gap-3 rounded-xl border border-hair-ink bg-canvas-2/30 p-4 text-sm leading-relaxed text-ink-soft">
+    <label className="flex cursor-pointer gap-3.5 rounded-2xl border border-hair-ink bg-surface p-4 text-sm leading-relaxed text-ink-soft transition-colors has-[:checked]:border-clay/50 has-[:checked]:bg-clay-soft/30 sm:p-5">
       <input
         type="checkbox"
         name="data_consent"
@@ -18,7 +18,7 @@ export function DataConsent({
         onChange={
           onChange ? (event) => onChange(event.target.checked) : undefined
         }
-        className="mt-1 size-5 shrink-0 accent-clay"
+        className="mt-0.5 size-5 shrink-0 accent-clay"
       />
       <span>
         Даю согласие на обработку анкеты, фото и результатов для работы

@@ -14,6 +14,15 @@ import { PRIVACY_VERSION } from "@/lib/privacy";
 import { hasAnalyticsConsent } from "@/lib/privacyStorage";
 import { safeTryonReturn } from "@/lib/catalogView";
 import { GenerationNotice } from "@/components/GenerationNotice";
+import {
+  AlertCircle,
+  ArrowRight,
+  Camera,
+  Check,
+  ImageUp,
+  UserRound,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Клиентский предохранитель поверх серверного poll-таймаута FASHN (3 минуты,
 // см. lib/fashn.ts) — если сервер вообще не ответит, не виснем бесконечно.
@@ -64,11 +73,9 @@ const POSES = [
   { value: "motion", label: "В движении" },
 ];
 
-const FIELD =
-  "border border-hair-ink bg-transparent px-3.5 py-2.5 font-grotesk text-sm text-ink outline-none transition-colors focus:border-clay";
+const FIELD = "field";
 
-const LEGEND =
-  "mb-2 font-grotesk text-[10px] uppercase tracking-[0.24em] text-ink-soft";
+const LEGEND = "field-label";
 
 // Обёртка над radio/checkbox, спрятанным в sr-only — визуально это плашка,
 // подсвечивающаяся при выборе через :has(:checked). Общий паттерн для всех
@@ -89,7 +96,7 @@ function Chip({
   defaultChecked?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-center gap-1.5 border border-hair-ink px-4 py-2 font-grotesk text-[12px] text-ink-soft transition-colors hover:border-ink has-[:checked]:border-clay has-[:checked]:bg-clay has-[:checked]:text-canvas">
+    <label className="chip">
       <input
         type={type}
         name={name}
@@ -117,6 +124,7 @@ function ProfileForm({
     () => searchParams.get("model") === "generated",
   );
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "generating">(
     "idle",
   );
@@ -131,6 +139,7 @@ function ProfileForm({
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    setFileName(file?.name ?? null);
     if (!file) {
       setPreviewUrl(null);
       return;
@@ -143,6 +152,7 @@ function ProfileForm({
     ) {
       setError("Выбери JPEG, PNG или WebP размером до 4 МБ");
       e.target.value = "";
+      setFileName(null);
       setPreviewUrl(null);
       return;
     }
@@ -207,7 +217,7 @@ function ProfileForm({
   const busy = status !== "idle";
 
   return (
-    <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-10">
+    <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-10 sm:mt-14">
       <GenerationNotice />
       <fieldset disabled={busy} className="contents">
         {/* Выбор источника модели поднят в начало формы: раньше это был тумблер
@@ -215,101 +225,133 @@ function ProfileForm({
         <fieldset>
           <legend className={LEGEND}>Откуда взять модель</legend>
           <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setNoPhoto(false)}
-              aria-pressed={!noPhoto}
-              className={
-                "border p-5 text-left transition-colors " +
-                (!noPhoto
-                  ? "border-clay bg-clay/5"
-                  : "border-hair-ink hover:border-ink")
-              }
-            >
-              <span
-                className={
-                  "font-display text-2xl " +
-                  (!noPhoto ? "text-clay" : "text-ink-soft")
-                }
-              >
-                01
-              </span>
-              <p className="mt-2 font-display text-lg uppercase tracking-tight text-ink">
-                Своё фото
-              </p>
-              <p className="mt-1.5 font-grotesk text-[12px] leading-relaxed text-ink-soft">
-                Снимок в полный рост. Результат максимально похож на тебя.
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setNoPhoto(true)}
-              aria-pressed={noPhoto}
-              className={
-                "border p-5 text-left transition-colors " +
-                (noPhoto
-                  ? "border-clay bg-clay/5"
-                  : "border-hair-ink hover:border-ink")
-              }
-            >
-              <span
-                className={
-                  "font-display text-2xl " +
-                  (noPhoto ? "text-clay" : "text-ink-soft")
-                }
-              >
-                02
-              </span>
-              <p className="mt-2 font-display text-lg uppercase tracking-tight text-ink">
-                Модель по анкете
-              </p>
-              <p className="mt-1.5 font-grotesk text-[12px] leading-relaxed text-ink-soft">
-                Фото не нужно — соберём женскую или мужскую модель по параметрам
-                ниже.
-              </p>
-            </button>
+            {[
+              {
+                value: false,
+                icon: Camera,
+                title: "Своё фото",
+                text: "Снимок в полный рост. Результат максимально похож на тебя.",
+              },
+              {
+                value: true,
+                icon: UserRound,
+                title: "Модель по анкете",
+                text: "Фото не нужно — соберём женскую или мужскую модель по параметрам ниже.",
+              },
+            ].map(({ value, icon: Icon, title, text }) => {
+              const active = noPhoto === value;
+              return (
+                <button
+                  key={title}
+                  type="button"
+                  onClick={() => setNoPhoto(value)}
+                  aria-pressed={active}
+                  className={cn(
+                    "relative flex gap-4 rounded-2xl border p-5 text-left transition-[border-color,background-color,box-shadow] duration-200",
+                    active
+                      ? "border-clay bg-clay-soft/40 shadow-soft"
+                      : "border-hair-ink bg-surface hover:border-ink/40",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-11 shrink-0 items-center justify-center rounded-full transition-colors",
+                      active ? "bg-clay text-canvas" : "bg-canvas-2 text-ink",
+                    )}
+                  >
+                    <Icon className="size-5" strokeWidth={1.5} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-display text-xl leading-tight">
+                      {title}
+                    </span>
+                    <span className="mt-1.5 block text-sm leading-relaxed text-ink-soft">
+                      {text}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute right-4 top-4 flex size-5 items-center justify-center rounded-full border transition-colors",
+                      active
+                        ? "border-clay bg-clay text-canvas"
+                        : "border-hair-ink",
+                    )}
+                  >
+                    {active && <Check className="size-3" strokeWidth={3} />}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {noPhoto ? (
-            <p className="mt-4 border-l-2 border-clay bg-clay/5 px-4 py-3 font-grotesk text-[12px] leading-relaxed text-ink-soft">
+            <p className="mt-4 rounded-2xl bg-canvas-2/70 px-4 py-3.5 text-sm leading-relaxed text-ink-soft">
               Модель сгенерирует FASHN по полу, росту, весу, телосложению,
               возрасту, тону кожи и позе. Займёт до пары минут при отправке
               формы.
             </p>
           ) : (
-            <label className="mt-4 flex flex-col gap-2">
-              <span className={LEGEND + " mb-0"}>Фото в полный рост</span>
-              <input
-                required={!initialProfile?.photoPath}
-                type="file"
-                name="photo"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handlePhotoChange}
-                className={
-                  FIELD +
-                  " file:mr-3 file:border-0 file:bg-clay file:px-3 file:py-1.5 file:font-grotesk file:text-[11px] file:uppercase file:tracking-[0.14em] file:text-canvas"
-                }
-              />
-              {(previewUrl || initialProfile?.photoPath) && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={previewUrl ?? initialProfile!.photoPath!}
-                  alt="Предпросмотр фото"
-                  className="mt-1 h-48 w-36 object-cover ring-1 ring-hair-ink"
-                />
-              )}
+            <label className="mt-5 flex flex-col">
+              <span className={LEGEND}>Фото в полный рост</span>
+              <span className="flex cursor-pointer flex-col gap-4 rounded-2xl border border-dashed border-ink/25 bg-surface p-4 transition-colors hover:border-clay has-[:focus-visible]:border-clay has-[:focus-visible]:shadow-[0_0_0_3px_rgba(169,72,45,0.14)] sm:flex-row sm:items-center">
+                {previewUrl || initialProfile?.photoPath ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewUrl ?? initialProfile!.photoPath!}
+                    alt="Предпросмотр фото"
+                    className="h-40 w-30 shrink-0 rounded-xl object-cover"
+                  />
+                ) : (
+                  <span className="flex h-40 w-30 shrink-0 items-center justify-center rounded-xl bg-canvas-2">
+                    <ImageUp className="size-7 text-ink-soft" strokeWidth={1.4} />
+                  </span>
+                )}
+                <span className="flex min-w-0 flex-1 flex-col items-start gap-3">
+                  <span className="text-sm text-ink-soft">
+                    JPEG, PNG или WebP до 4 МБ. Лучше всего — ровный свет и
+                    поза в полный рост.
+                  </span>
+                  {/* Нативная кнопка выбора файла подписана языком браузера
+                      («Choose File») — прячем её и рисуем свою. */}
+                  <input
+                    required={!initialProfile?.photoPath}
+                    type="file"
+                    name="photo"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoChange}
+                    className="sr-only"
+                  />
+                  <span className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
+                    <span className="button-dark button-sm pointer-events-none">
+                      <ImageUp className="size-4" strokeWidth={1.75} />
+                      {previewUrl || initialProfile?.photoPath
+                        ? "Выбрать другое фото"
+                        : "Выбрать фото"}
+                    </span>
+                    <span className="min-w-0 truncate text-sm text-ink-soft">
+                      {fileName ??
+                        (initialProfile?.photoPath
+                          ? "Текущее фото"
+                          : "Файл не выбран")}
+                    </span>
+                  </span>
+                </span>
+              </span>
             </label>
           )}
         </fieldset>
 
         {initialProfile?.photoPath && !noPhoto && (
-          <p className="-mt-6 text-xs text-ink-soft">
+          <p className="-mt-6 text-[13px] text-ink-soft">
             Сохраним текущее фото, если ты не выберешь другое. Форматы: JPEG,
             PNG, WebP, до 4 МБ.
           </p>
         )}
-        <fieldset className="border-t border-hair-ink pt-8">
+        <div className="-mb-4 border-t border-hair-ink pt-8">
+          <p className="font-display text-2xl text-ink">Основное</p>
+        </div>
+        <fieldset>
           <legend className={LEGEND}>Пол</legend>
           <div className="flex flex-wrap gap-2">
             {GENDERS.map((option) => (
@@ -329,8 +371,8 @@ function ProfileForm({
         </fieldset>
 
         <div className="grid gap-5 sm:grid-cols-3">
-          <label className="flex flex-col gap-2">
-            <span className={LEGEND + " mb-0"}>Рост, см</span>
+          <label className="flex flex-col">
+            <span className={LEGEND}>Рост, см</span>
             <input
               type="number"
               name="height_cm"
@@ -342,8 +384,8 @@ function ProfileForm({
               className={FIELD}
             />
           </label>
-          <label className="flex flex-col gap-2">
-            <span className={LEGEND + " mb-0"}>Вес, кг</span>
+          <label className="flex flex-col">
+            <span className={LEGEND}>Вес, кг</span>
             <input
               type="number"
               name="weight_kg"
@@ -356,8 +398,8 @@ function ProfileForm({
               className={FIELD}
             />
           </label>
-          <label className="flex flex-col gap-2">
-            <span className={LEGEND + " mb-0"}>Телосложение</span>
+          <label className="flex flex-col">
+            <span className={LEGEND}>Телосложение</span>
             <select
               name="body_type"
               required
@@ -377,16 +419,19 @@ function ProfileForm({
         </div>
 
         <div className="border-t border-hair-ink pt-8">
-          <p className="font-display text-xl uppercase tracking-tight text-ink">
-            Дополнительно
+          <p className="font-display text-2xl text-ink">
+            Дополнительно{" "}
+            <span className="font-sans text-sm text-ink-soft">
+              · необязательно
+            </span>
           </p>
-          <p className="mt-2 max-w-lg font-grotesk text-[12px] leading-relaxed text-ink-soft">
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-soft">
             Тип фигуры, возраст, тон кожи и поза идут в генерацию модели и
             примерку, размер — в рекомендации по каталогу. Всё необязательно, но
             чем точнее, тем ближе результат.
           </p>
 
-          <div className="mt-6 flex flex-col gap-6">
+          <div className="mt-7 flex flex-col gap-7">
             <fieldset>
               <legend className={LEGEND}>Тип фигуры</legend>
               <div className="flex flex-wrap gap-2">
@@ -430,7 +475,7 @@ function ProfileForm({
                     defaultChecked={initialProfile?.skinTone === option.value}
                   >
                     <span
-                      className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-ink/15"
+                      className="size-4 shrink-0 rounded-full ring-1 ring-ink/15"
                       style={{ backgroundColor: option.hex }}
                     />
                     {option.label}
@@ -478,15 +523,20 @@ function ProfileForm({
       {busy && (
         <p
           role="status"
-          className="rounded-xl bg-canvas-2 p-4 text-sm leading-relaxed text-ink-soft"
+          className="flex items-start gap-3 rounded-2xl bg-canvas-2/80 p-4 text-[15px] leading-relaxed text-ink-soft"
         >
+          <span className="mt-1 size-4 shrink-0 animate-spin rounded-full border-2 border-clay/30 border-t-clay" />
           {status === "generating"
             ? "Создаём модель по твоей анкете. Обычно это занимает до двух минут. Дождись завершения на этой странице."
             : "Сохраняем твою анкету…"}
         </p>
       )}
       {error && (
-        <p className="border-l-2 border-clay bg-clay/5 px-4 py-3 font-grotesk text-sm text-ink">
+        <p
+          role="alert"
+          className="flex items-start gap-3 rounded-2xl border border-clay/30 bg-clay-soft/50 px-4 py-3.5 text-[15px] text-ink"
+        >
+          <AlertCircle className="mt-0.5 size-5 shrink-0 text-clay" strokeWidth={1.75} />
           {error}
         </p>
       )}
@@ -494,14 +544,14 @@ function ProfileForm({
       <button
         type="submit"
         disabled={busy}
-        className="group relative self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+        className="button-primary button-lg w-full sm:w-auto sm:self-start"
       >
-        <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
         {status === "generating"
           ? "Генерируем модель…"
           : status === "saving"
             ? "Сохраняем…"
             : "Сохранить и примерить"}
+        {!busy && <ArrowRight className="size-4" />}
       </button>
     </form>
   );
@@ -512,8 +562,12 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-1 flex-col bg-canvas">
       <PageHeading
-        label="Личная анкета"
-        title="Начнём с тебя."
+        label="Анкета"
+        title={
+          <>
+            Начнём <span className="headline-accent">с тебя.</span>
+          </>
+        }
         description="Твоё фото или модель по параметрам — выбери удобный способ. Анкета сохранится в этом браузере."
       />
 

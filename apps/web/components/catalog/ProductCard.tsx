@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl, colorSwatch } from "@/lib/catalogDisplay";
 import { SkeletonImage } from "@/components/SkeletonImage";
@@ -21,42 +20,42 @@ export function ProductCard({
   imagePath,
 }: ProductCardProps) {
   const label = CATEGORY_LABELS[category as CatalogCategory] ?? category;
+  const swatch = colorSwatch(color);
   return (
-    <article className="group min-w-0">
+    <article className="group relative min-w-0">
       <div className="relative">
         <Link
           href={`/catalog/${id}`}
-          className="relative block aspect-[3/4] overflow-hidden bg-white/70"
+          className="media-well block aspect-[3/4] transition-shadow duration-300 group-hover:shadow-soft"
         >
           <SkeletonImage
             src={catalogImageUrl(imagePath)}
             alt={description ?? label}
-            className="object-contain p-3"
+            sizes="(max-width:768px) 50vw, (max-width:1024px) 33vw, 25vw"
+            className="media-product transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+            placeholderClassName="skeleton"
           />
-          <span className="absolute bottom-3 right-3 flex size-8 items-center justify-center rounded-full bg-canvas text-ink">
-            <ArrowUpRight className="size-3.5" />
+          <span className="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-surface/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-soft backdrop-blur">
+            {label}
           </span>
         </Link>
         <SaveItemButton itemId={id} label={description ?? label} />
       </div>
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="text-[10px] uppercase text-ink-soft">{label}</p>
-        {color && (
-          <span
-            title={color}
-            className="size-2.5 shrink-0 rounded-full ring-1 ring-hair-ink"
-            style={{ backgroundColor: colorSwatch(color) ?? "transparent" }}
-          />
-        )}
-      </div>
-      <Link href={`/catalog/${id}`} className="mt-2 block">
-        <h3 className="line-clamp-2 text-sm leading-relaxed first-letter:uppercase">
+      <Link href={`/catalog/${id}`} className="mt-4 block">
+        <h3 className="line-clamp-2 text-[15px] leading-snug transition-colors first-letter:uppercase group-hover:text-clay">
           {description ?? label}
         </h3>
       </Link>
       {color && (
-        <p className="mt-1 text-xs text-ink-soft first-letter:uppercase">
-          {color}
+        <p className="mt-1.5 flex items-center gap-2 text-[13px] text-ink-soft">
+          {swatch && (
+            <span
+              aria-hidden
+              className="size-3 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(42,33,28,0.18)]"
+              style={{ backgroundColor: swatch }}
+            />
+          )}
+          <span className="truncate first-letter:uppercase">{color}</span>
         </p>
       )}
     </article>

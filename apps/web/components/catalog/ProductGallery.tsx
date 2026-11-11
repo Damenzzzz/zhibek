@@ -15,11 +15,12 @@ export function ProductGallery({
   const count = images.length;
   return (
     <div className="space-y-4">
-      <div className="relative aspect-[3/4] bg-white/70">
+      <div className="media-well aspect-[3/4] rounded-3xl">
         <SkeletonImage
           src={images[index]}
           alt={alt}
-          className="object-contain p-4"
+          className="media-product p-[8%]"
+          placeholderClassName="skeleton"
           sizes="(max-width:1024px) 90vw, 45vw"
           priority
         />
@@ -28,23 +29,23 @@ export function ProductGallery({
             <button
               type="button"
               aria-label="Увеличить фото товара"
-              className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-canvas"
+              className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-surface/90 shadow-soft backdrop-blur transition-colors hover:bg-surface hover:text-clay"
             >
               <Expand className="size-4" />
             </button>
           </Dialog.Trigger>
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/75" />
-            <Dialog.Content className="fixed inset-4 z-50 flex flex-col rounded-xl bg-canvas p-4 sm:inset-8">
+            <Dialog.Overlay className="fixed inset-0 z-40 bg-espresso/80 backdrop-blur-sm data-[state=open]:animate-fade-in" />
+            <Dialog.Content className="fixed inset-3 z-50 flex flex-col rounded-3xl bg-media p-4 shadow-lift data-[state=open]:animate-fade-in sm:inset-8 sm:p-6">
               <div className="flex items-center justify-between gap-4">
-                <Dialog.Title className="line-clamp-1 text-sm">
+                <Dialog.Title className="line-clamp-1 font-display text-lg first-letter:uppercase">
                   {alt}
                 </Dialog.Title>
                 <Dialog.Close asChild>
                   <button
                     type="button"
                     aria-label="Закрыть фото"
-                    className="flex size-11 shrink-0 items-center justify-center"
+                    className="icon-button bg-surface"
                   >
                     <X className="size-5" />
                   </button>
@@ -57,7 +58,8 @@ export function ProductGallery({
                 <SkeletonImage
                   src={images[index]}
                   alt={alt}
-                  className="object-contain"
+                  className="object-contain mix-blend-multiply"
+                  placeholderClassName="bg-media"
                   sizes="90vw"
                 />
               </div>
@@ -70,18 +72,18 @@ export function ProductGallery({
               type="button"
               aria-label="Предыдущее фото"
               onClick={() => setIndex((index + count - 1) % count)}
-              className="flex size-11 items-center justify-center rounded-full bg-canvas"
+              className="flex size-11 items-center justify-center rounded-full bg-surface/90 shadow-soft backdrop-blur transition-colors hover:bg-surface"
             >
               <ArrowLeft className="size-4" />
             </button>
-            <span className="rounded-full bg-canvas px-3 py-2 text-xs tabular-nums">
+            <span className="rounded-full bg-surface/90 px-3.5 py-2 text-[13px] tabular-nums shadow-soft backdrop-blur">
               {index + 1} / {count}
             </span>
             <button
               type="button"
               aria-label="Следующее фото"
               onClick={() => setIndex((index + 1) % count)}
-              className="flex size-11 items-center justify-center rounded-full bg-canvas"
+              className="flex size-11 items-center justify-center rounded-full bg-surface/90 shadow-soft backdrop-blur transition-colors hover:bg-surface"
             >
               <ArrowRight className="size-4" />
             </button>
@@ -98,21 +100,24 @@ export function ProductGallery({
               aria-label={`Фото ${i + 1}`}
               aria-pressed={i === index}
               className={cn(
-                "relative aspect-[3/4] w-20 shrink-0 border bg-white/70",
-                i === index ? "border-clay" : "border-hair-ink",
+                "relative aspect-[3/4] w-20 shrink-0 overflow-hidden rounded-xl bg-media transition-shadow",
+                i === index
+                  ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas"
+                  : "ring-1 ring-inset ring-hair-ink hover:ring-ink/40",
               )}
             >
               <SkeletonImage
                 src={src}
                 alt=""
-                className="object-contain"
+                className="media-product p-1.5"
+                placeholderClassName="bg-media"
                 sizes="80px"
               />
             </button>
           ))}
         </div>
       )}
-      <p className="text-xs text-ink-soft">
+      <p className="text-[13px] text-ink-soft">
         Нажми на значок увеличения, чтобы рассмотреть детали.
       </p>
     </div>

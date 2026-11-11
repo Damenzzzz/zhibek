@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LegalDocument } from "@/components/LegalDocument";
-export const metadata = { title: "Условия использования — Smart Fashion" };
+export const metadata = { title: "Условия использования" };
 export default function TermsPage() {
   return (
     <LegalDocument

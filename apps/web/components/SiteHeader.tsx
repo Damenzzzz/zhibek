@@ -1,129 +1,184 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Menu, ShoppingBag, User, X } from "lucide-react";
+import { ArrowUpRight, Menu, ShoppingBag, User, X } from "lucide-react";
 import { useFittingRoomIds } from "@/lib/fittingRoomStorage";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { cn } from "@/lib/utils";
+
 const links = [
   { href: "/catalog", label: "Коллекция" },
   { href: "/tryon", label: "Примерка" },
   { href: "/#how-it-works", label: "Как это работает" },
-  { href: "/#about", label: "О Smart Fashion" },
+  { href: "/#about", label: "О проекте" },
 ];
+
 export function SiteHeader() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const count = useFittingRoomIds().length;
+
+  // Над первым экраном шапка прозрачная и без линии, после прокрутки —
+  // плотнее и с тенью, чтобы не сливаться с фото под ней.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const isActive = (href: string) =>
+    !href.includes("#") && pathname.startsWith(href);
+
   return (
     <>
       <a href="#page-content" className="skip-link">
         Перейти к содержимому
       </a>
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-hair-ink bg-canvas/95">
-        <div className="site-container flex h-20 items-center justify-between gap-6">
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300",
+          scrolled
+            ? "border-hair-ink bg-canvas/88 shadow-[0_8px_24px_-18px_rgba(42,33,28,0.35)] backdrop-blur-md"
+            : "border-transparent bg-canvas/70 backdrop-blur-sm",
+        )}
+      >
+        <div className="site-container flex h-[4.5rem] items-center justify-between gap-6">
           <Link
             href="/"
             aria-label="Smart Fashion — главная"
-            className="shrink-0 font-display text-xl leading-none"
+            className="wordmark group shrink-0 text-[1.0625rem] sm:text-lg"
           >
-            Smart
-            <br />
-            Fashion<span className="ml-1 text-clay">.</span>
+            Smart Fashion
+            <span className="inline-block text-clay transition-transform duration-300 group-hover:scale-150">
+              .
+            </span>
           </Link>
           <nav
             aria-label="Основная навигация"
-            className="hidden items-center gap-8 lg:flex"
+            className="hidden items-center gap-1 lg:flex"
           >
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={link.href === pathname ? "page" : undefined}
-                className={cn(
-                  "min-h-11 content-center text-xs text-ink-soft hover:text-clay",
-                  pathname.startsWith(link.href) && "text-clay",
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {links.map((link) => {
+              const active = isActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative inline-flex min-h-11 items-center rounded-full px-4 text-sm transition-colors duration-200",
+                    active
+                      ? "text-ink"
+                      : "text-ink-soft hover:bg-canvas-2/70 hover:text-ink",
+                  )}
+                >
+                  {link.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute bottom-1.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-clay"
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
-          <div className="flex items-center gap-1 sm:gap-3">
+          <div className="flex items-center gap-1">
             <Link
               href="/profile"
               aria-label="Моя анкета"
-              className="flex size-11 items-center justify-center rounded-full hover:bg-canvas-2"
+              aria-current={pathname === "/profile" ? "page" : undefined}
+              className="icon-button aria-[current=page]:bg-canvas-2"
             >
-              <User className="size-5" strokeWidth={1.4} />
+              <User className="size-5" strokeWidth={1.5} />
             </Link>
             <CartDrawer
               trigger={
                 <button
                   type="button"
                   aria-label={`Примерочная${count ? `: ${count}` : ""}`}
-                  className="relative flex size-11 items-center justify-center rounded-full hover:bg-canvas-2"
+                  className="icon-button relative"
                 >
-                  <ShoppingBag className="size-5" strokeWidth={1.4} />
+                  <ShoppingBag className="size-5" strokeWidth={1.5} />
                   {count > 0 && (
-                    <span className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-clay text-[9px] tabular-nums text-canvas">
+                    <span className="absolute right-0.5 top-0.5 flex min-w-[1.125rem] items-center justify-center rounded-full bg-clay px-1 py-px text-[11px] font-medium leading-4 tabular-nums text-canvas ring-2 ring-canvas">
                       {count}
                     </span>
                   )}
                 </button>
               }
             />
+            <Link
+              href="/tryon"
+              className="button-dark button-sm ml-2 hidden lg:inline-flex"
+            >
+              Примерить
+              <ArrowUpRight className="size-4" />
+            </Link>
             <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
               <Dialog.Trigger asChild>
                 <button
                   type="button"
                   aria-label="Открыть меню"
-                  className="flex size-11 items-center justify-center rounded-full hover:bg-canvas-2 lg:hidden"
+                  className="icon-button lg:hidden"
                 >
-                  <Menu className="size-5" strokeWidth={1.4} />
+                  <Menu className="size-5" strokeWidth={1.5} />
                 </button>
               </Dialog.Trigger>
               <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/35" />
-                <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col overflow-y-auto bg-canvas p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-xl">
-                  <div className="flex items-center justify-between">
-                    <Dialog.Title className="font-display text-2xl">
-                      Smart Fashion.
+                <Dialog.Overlay className="fixed inset-0 z-40 bg-espresso/40 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+                <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col overflow-y-auto bg-canvas px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 shadow-lift data-[state=open]:animate-fade-in">
+                  <div className="flex h-14 items-center justify-between">
+                    <Dialog.Title className="wordmark text-lg">
+                      Smart Fashion<span className="text-clay">.</span>
                     </Dialog.Title>
                     <Dialog.Close asChild>
-                      <button
-                        aria-label="Закрыть меню"
-                        className="flex size-11 items-center justify-center rounded-full hover:bg-canvas-2"
-                      >
+                      <button aria-label="Закрыть меню" className="icon-button">
                         <X className="size-5" />
                       </button>
                     </Dialog.Close>
                   </div>
-                  <Dialog.Description className="mt-3 text-sm text-ink-soft">
+                  <Dialog.Description className="mt-2 text-sm text-ink-soft">
                     Твоя виртуальная примерочная
                   </Dialog.Description>
                   <nav
                     aria-label="Мобильная навигация"
-                    className="mt-8 flex flex-col"
+                    className="mt-6 flex flex-col"
                   >
                     {[
                       ...links,
-                      { href: "/profile", label: "Моя анкета" },
                       { href: "/fitting-room", label: "Моя подборка" },
-                    ].map((link) => (
+                      { href: "/profile", label: "Моя анкета" },
+                    ].map((link, i) => (
                       <Dialog.Close key={link.href} asChild>
                         <Link
                           href={link.href}
-                          className="border-b border-hair-ink py-5 font-display text-2xl"
+                          aria-current={
+                            isActive(link.href) ? "page" : undefined
+                          }
+                          className="group flex items-center justify-between border-b border-hair-ink py-4 font-display text-2xl leading-tight aria-[current=page]:text-clay"
                         >
-                          {link.label}
+                          <span>
+                            <span className="mr-3 align-middle font-sans text-xs tabular-nums text-ink-soft">
+                              0{i + 1}
+                            </span>
+                            {link.label}
+                          </span>
+                          <ArrowUpRight className="size-5 text-ink-soft transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                         </Link>
                       </Dialog.Close>
                     ))}
                   </nav>
-                  <p className="mt-auto pt-8 text-xs leading-relaxed text-ink-soft">
+                  <Dialog.Close asChild>
+                    <Link href="/tryon" className="button-primary mt-8 w-full">
+                      Начать примерку
+                      <ArrowUpRight className="size-4" />
+                    </Link>
+                  </Dialog.Close>
+                  <p className="mt-auto pt-8 font-display text-lg text-ink-soft">
                     Примеряй новое. Оставайся собой.
                   </p>
                 </Dialog.Content>

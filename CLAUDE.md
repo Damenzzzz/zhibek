@@ -219,8 +219,30 @@ dev-сервера/деплое) — `db:migrate` нужен редко, для 
 
 Tailwind v4, тема целиком объявлена через `@theme inline` в
 `apps/web/app/globals.css` — отдельного `tailwind.config.*` нет. Шрифты:
-`Unbounded` (заголовки, `font-display`) и `Onest` (текст, `font-sans`),
-подключаются в `apps/web/app/layout.tsx`.
+`Tenor Sans` (логотип и заголовки, `font-display`; одно начертание 400 —
+без `italic`/`font-medium`, иначе браузер нарисует синтетику) и `Golos Text`
+(текст, `font-sans`), подключаются в `apps/web/app/layout.tsx`. Логотип —
+класс `.wordmark` (капс с разрядкой), акцент в заголовке — `.headline-accent`
+(терракотовый цвет).
+
+Общие компонентные классы там же, в `@layer components` — новые экраны
+собираются из них, а не из разовых наборов утилит:
+- кнопки `.button-primary` / `.button-dark` / `.button-secondary` /
+  `.button-light` / `.button-ghost-light` (+ размеры `.button-sm`,
+  `.button-lg`), `.icon-button`, `.link-arrow`;
+- формы `.field`, `.field-label`, `.chip` (radio/checkbox в `sr-only` или
+  кнопка с `aria-pressed`), `.segmented`;
+- поверхности `.panel`, `.media-well` + `.media-product` (товарное фото
+  через `mix-blend-multiply` на подложке `--media`, чтобы белые и серые фоны
+  снимков сводились к одному тону), `.skeleton`;
+- типографика `.section-title`, `.lead`, `.label` (микро-рубрика, не мельче
+  11px);
+- интерактив: `<Tilt>` (наклон за курсором, только мышь), `<CountUp>`,
+  `.shimmer-word`/`.pulse-dot` (бегущая строка), `.scan-line`, `.float-soft`,
+  `.scroll-progress`. Всё отключается при `prefers-reduced-motion`.
+
+Цвета — только токены (`canvas`, `surface`, `media`, `espresso`, `clay`,
+`clay-deep`, `ink`, `ink-soft`, …); сырые hex в разметке не пишем.
 
 ## Деплой (Vercel)
 

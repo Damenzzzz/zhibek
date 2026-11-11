@@ -1,6 +1,6 @@
 import { LegalDocument } from "@/components/LegalDocument";
 export const metadata = {
-  title: "Cookie и хранилище браузера — Smart Fashion",
+  title: "Cookie и хранилище браузера",
 };
 export default function CookiesPage() {
   return (

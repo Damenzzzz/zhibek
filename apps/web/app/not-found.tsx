@@ -1,19 +1,29 @@
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-24 text-center">
-      <span className="eyebrow">404</span>
-      <h1 className="mt-3 font-display text-4xl uppercase tracking-tight text-ink">Страница не найдена</h1>
-      <p className="mt-3 max-w-sm text-sm leading-relaxed text-ink-soft">
-        Возможно, товар убрали из каталога или ссылка устарела.
-      </p>
-      <Link
-        href="/catalog"
-        className="mt-7 inline-block rounded-full bg-ink px-6 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
+    <main className="site-container flex flex-1 flex-col items-center justify-center py-32 text-center sm:py-40">
+      <p
+        aria-hidden
+        className="font-display text-[clamp(6rem,18vw,11rem)] leading-none tracking-[-0.04em] text-clay/20"
       >
-        В каталог
-      </Link>
-    </div>
+        404
+      </p>
+      <h1 className="-mt-4 font-display text-4xl leading-tight sm:text-5xl">
+        Страница <span className="headline-accent">не нашлась</span>
+      </h1>
+      <p className="mt-5 max-w-sm text-pretty text-[15px] leading-relaxed text-ink-soft">
+        Возможно, вещь убрали из коллекции или ссылка устарела.
+      </p>
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <Link href="/catalog" className="button-dark">
+          В коллекцию <ArrowUpRight className="size-4" />
+        </Link>
+        <Link href="/" className="button-secondary">
+          На главную
+        </Link>
+      </div>
+    </main>
   );
 }

@@ -3,13 +3,22 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  AlertCircle,
+  ArrowUpRight,
+  Camera,
+  Check,
+  Download,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 import { CATEGORY_LABELS, type CatalogCategory } from "@/lib/categories";
 import { catalogImageUrl } from "@/lib/catalogDisplay";
 import { useStoredProfile, type StoredProfile } from "@/lib/profileStorage";
 import { DataConsent } from "@/components/DataConsent";
 import { PRIVACY_VERSION } from "@/lib/privacy";
 import { hasAnalyticsConsent } from "@/lib/privacyStorage";
-import { cn } from "@/lib/utils";
+import { ITEM_FORMS, cn, pluralRu } from "@/lib/utils";
 import { GenerationNotice } from "@/components/GenerationNotice";
 import { Carousel } from "@/components/tryon/Carousel";
 import { getVisitorId, track } from "@/lib/analytics";
@@ -53,12 +62,37 @@ interface Look {
 }
 
 function itemsPlural(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} вещь`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20))
-    return `${n} вещи`;
-  return `${n} вещей`;
+  return pluralRu(n, ITEM_FORMS);
+}
+
+// Отметка выбора поверх карточки: галочка в круге вместо плашки «выбрано»,
+// которая перекрывала низ фото мелким капсом.
+function SelectedMark() {
+  return (
+    <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-clay text-canvas shadow-soft animate-fade-in">
+      <Check className="size-4" strokeWidth={2.5} />
+    </span>
+  );
+}
+
+// Заголовок блока внутри примерочной — одна стилистика для всех лент.
+function BlockTitle({
+  children,
+  count,
+}: {
+  children: React.ReactNode;
+  count?: number;
+}) {
+  return (
+    <h2 className="flex items-baseline gap-2 border-b border-hair-ink pb-3 font-display text-xl">
+      {children}
+      {count !== undefined && (
+        <span className="font-sans text-[13px] tabular-nums text-ink-soft">
+          {count}
+        </span>
+      )}
+    </h2>
+  );
 }
 
 interface TryonResult {
@@ -81,29 +115,31 @@ function ItemThumb({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className="group w-24 shrink-0 text-left sm:w-28"
+      className="group w-28 shrink-0 text-left sm:w-32"
     >
       <div
         className={
-          "relative aspect-[3/4] overflow-hidden bg-canvas-2 transition-all duration-300 " +
+          "media-well aspect-[3/4] rounded-xl transition-shadow duration-200 " +
           (selected
             ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas"
-            : "ring-1 ring-hair-ink")
+            : "ring-1 ring-inset ring-hair-ink group-hover:ring-ink/40")
         }
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={catalogImageUrl(item.imagePath)}
           alt={item.description ?? item.category}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          className="media-product absolute inset-0 h-full w-full transition-transform duration-500 group-hover:scale-105"
         />
-        {selected && (
-          <span className="absolute bottom-0 left-0 right-0 bg-clay py-1 text-center font-grotesk text-[9px] uppercase tracking-[0.2em] text-canvas">
-            выбрано
-          </span>
-        )}
+        {selected && <SelectedMark />}
       </div>
-      <p className="mt-2 line-clamp-2 font-grotesk text-[10px] leading-tight text-ink-soft">
+      <p
+        className={
+          "mt-2 line-clamp-2 text-[13px] leading-snug transition-colors first-letter:uppercase " +
+          (selected ? "text-ink" : "text-ink-soft group-hover:text-ink")
+        }
+      >
         {item.description ?? CATEGORY_LABELS[item.category as CatalogCategory]}
       </p>
     </button>
@@ -131,10 +167,10 @@ function LookCardButton({
     >
       <div
         className={
-          "relative aspect-[3/4] overflow-hidden bg-canvas-2 transition-all duration-300 " +
+          "relative aspect-[3/4] overflow-hidden rounded-2xl bg-media transition-shadow duration-200 " +
           (selected
             ? "ring-2 ring-clay ring-offset-2 ring-offset-canvas"
-            : "ring-1 ring-hair-ink")
+            : "group-hover:shadow-soft")
         }
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -146,16 +182,13 @@ function LookCardButton({
             )
           }
           alt={`Готовый образ ${look.lookId}`}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          className="h-full w-full scale-[1.04] object-cover object-[50%_35%] transition-transform duration-500 group-hover:scale-[1.08]"
         />
-        <span className="absolute left-0 top-0 bg-espresso px-2.5 py-1.5 font-grotesk text-[9px] uppercase tracking-[0.2em] text-canvas-dim">
+        <span className="absolute bottom-2 left-2 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-medium backdrop-blur">
           {itemsPlural(look.itemCount)}
         </span>
-        {selected && (
-          <span className="absolute inset-x-0 bottom-0 bg-clay py-1 text-center font-grotesk text-[9px] uppercase tracking-[0.2em] text-canvas">
-            выбрано
-          </span>
-        )}
+        {selected && <SelectedMark />}
       </div>
     </button>
   );
@@ -206,8 +239,8 @@ function ProfileSummary({
   // (см. app/api/profile) — здесь показываем, на чём именно будет примерка,
   // чтобы это не было чёрным ящиком.
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-hair-ink py-4">
-      <span className="relative h-14 w-11 shrink-0 overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
+    <div className="panel flex flex-wrap items-center gap-x-3 gap-y-2.5 p-3 pr-4 sm:rounded-full sm:p-2 sm:pr-3">
+      <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-xl bg-media sm:size-12 sm:rounded-full">
         {profile.photoPath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -217,19 +250,20 @@ function ProfileSummary({
           />
         ) : null}
       </span>
+      <span className="mr-1 text-sm font-medium">Твоя модель</span>
       {badges.map((badge) => (
         <span
           key={badge}
-          className="border border-hair-ink px-2.5 py-1 font-grotesk text-[10px] uppercase tracking-[0.14em] text-ink-soft"
+          className="rounded-full bg-canvas-2/80 px-3 py-1.5 text-[13px] text-ink-soft"
         >
           {badge}
         </span>
       ))}
       <Link
         href={editHref}
-        className="font-grotesk text-[10px] uppercase tracking-[0.2em] text-clay transition-colors hover:text-ink"
+        className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-clay transition-colors hover:bg-clay/5"
       >
-        Изменить анкету
+        Изменить анкету <ArrowUpRight className="size-4" />
       </Link>
     </div>
   );
@@ -240,7 +274,7 @@ function ResultImage({ src, alt }: { src: string; alt: string }) {
 
   if (failed) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-bone-soft px-2 text-center text-[11px] text-ink-soft">
+      <div className="flex h-full w-full items-center justify-center bg-canvas-2 px-2 text-center text-[13px] text-ink-soft">
         Не удалось загрузить изображение
       </div>
     );
@@ -283,6 +317,25 @@ async function downloadImage(url: string, filename: string) {
   } catch {
     window.open(url, "_blank");
   }
+}
+
+// Панель с кнопкой примерки прилипает к низу экрана, пока над ней листаются
+// ленты вещей: раньше до кнопки приходилось прокручивать через все ленты.
+function TryBar({
+  summary,
+  children,
+}: {
+  summary: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="sticky bottom-3 z-20 flex flex-col gap-2 rounded-3xl border border-hair-ink bg-surface/92 p-2 shadow-lift backdrop-blur-md sm:bottom-5 sm:flex-row sm:items-center sm:justify-between sm:rounded-full sm:pl-6">
+      <p className="hidden text-sm text-ink-soft sm:block" aria-live="polite">
+        {summary}
+      </p>
+      {children}
+    </div>
+  );
 }
 
 export function TryonForm({
@@ -540,72 +593,123 @@ export function TryonForm({
   // из двух равноправных путей.
   if (!profile) {
     return (
-      <div className="mt-10 animate-fade-in-up">
-        <p className="max-w-lg font-grotesk text-sm leading-relaxed text-ink-soft">
-          Для примерки нужна модель — фигура, на которую нейросеть положит вещь.
-          Выбери, откуда её взять:
+      <div className="animate-fade-in-up">
+        <h2 className="font-display text-3xl leading-tight sm:text-4xl">
+          На ком <span className="headline-accent">примеряем?</span>
+        </h2>
+        <p className="lead mt-3 max-w-xl">
+          Для примерки нужна модель — фигура, на которую нейросеть наденет
+          образ. Выбери, откуда её взять:
         </p>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Link
-            href={profileHref}
-            className="group relative border border-hair-ink bg-canvas-2 p-6 transition-colors hover:border-ink"
-          >
-            <span className="font-display text-3xl text-clay">01</span>
-            <h3 className="mt-3 font-display text-xl uppercase tracking-tight text-ink">
-              Своё фото
-            </h3>
-            <p className="mt-2 font-grotesk text-[13px] leading-relaxed text-ink-soft">
-              Снимок в полный рост — результат будет максимально похож на тебя.
-            </p>
-            <span className="mt-5 block h-px w-full bg-hair-ink">
-              <span className="block h-px w-0 bg-clay transition-all duration-500 group-hover:w-full" />
-            </span>
-          </Link>
-
-          <Link
-            href={`${profileHref}&model=generated`}
-            className="group relative border border-clay bg-clay/5 p-6 transition-colors hover:bg-clay/10"
-          >
-            <span className="font-display text-3xl text-clay">02</span>
-            <h3 className="mt-3 font-display text-xl uppercase tracking-tight text-ink">
-              Модель по анкете
-            </h3>
-            <p className="mt-2 font-grotesk text-[13px] leading-relaxed text-ink-soft">
-              Фото не нужно. Соберём женскую или мужскую модель по росту, весу,
-              телосложению, тону кожи и позе.
-            </p>
-            <span className="mt-5 block h-px w-full bg-hair-ink">
-              <span className="block h-px w-0 bg-clay transition-all duration-500 group-hover:w-full" />
-            </span>
-          </Link>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          {[
+            {
+              href: profileHref,
+              icon: Camera,
+              title: "Своё фото",
+              text: "Снимок в полный рост — результат будет максимально похож на тебя.",
+              cta: "Загрузить фото",
+              accent: false,
+            },
+            {
+              href: `${profileHref}&model=generated`,
+              icon: UserRound,
+              title: "Модель по анкете",
+              text: "Фото не нужно. Соберём женскую или мужскую модель по росту, весу, телосложению, тону кожи и позе.",
+              cta: "Заполнить анкету",
+              accent: true,
+            },
+          ].map(({ href, icon: Icon, title, text, cta, accent }) => (
+            <Link
+              key={title}
+              href={href}
+              className={cn(
+                "group relative flex flex-col rounded-3xl border p-7 transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-lift sm:p-8",
+                accent
+                  ? "border-clay/40 bg-clay-soft/50 hover:border-clay"
+                  : "border-hair-ink bg-surface hover:border-ink/40",
+              )}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <span
+                  className={cn(
+                    "flex size-14 items-center justify-center rounded-full",
+                    accent ? "bg-clay text-canvas" : "bg-canvas-2 text-ink",
+                  )}
+                >
+                  <Icon className="size-6" strokeWidth={1.5} />
+                </span>
+                {accent && (
+                  <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-clay">
+                    Без фото
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-8 font-display text-[1.75rem] leading-tight">
+                {title}
+              </h3>
+              <p className="mt-2 max-w-sm text-pretty text-[15px] leading-relaxed text-ink-soft">
+                {text}
+              </p>
+              <span className="mt-8 inline-flex items-center gap-2 text-[15px] font-medium text-clay">
+                {cta}
+                <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mt-8 flex flex-col gap-8">
-      <nav
+    <div className="flex flex-col gap-8">
+      <ol
         aria-label="Этапы примерки"
-        className="grid grid-cols-3 gap-3 border-b border-hair-ink pb-6 text-xs"
+        className="grid grid-cols-3 gap-2 text-[13px] sm:gap-4 sm:text-sm"
       >
-        {["Твоя модель", "Твой образ", "Результат"].map((label, index) => (
-          <span
-            key={label}
-            className={cn(
-              "flex items-center gap-2 text-ink-soft",
-              ((result && index === 2) || (!result && index === 1)) &&
-                "text-clay",
-            )}
-          >
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-hair-ink tabular-nums">
-              {index + 1}
-            </span>
-            {label}
-          </span>
-        ))}
-      </nav>
+        {["Твоя модель", "Твой образ", "Результат"].map((label, index) => {
+          const current = result ? 2 : 1;
+          const done = index < current;
+          const active = index === current;
+          return (
+            <li
+              key={label}
+              aria-current={active ? "step" : undefined}
+              className="flex flex-col gap-3"
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "h-1 rounded-full transition-colors duration-300",
+                  done || active ? "bg-clay" : "bg-hair-ink",
+                )}
+              />
+              <span
+                className={cn(
+                  "flex items-center gap-2",
+                  active ? "font-medium text-ink" : "text-ink-soft",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-6 shrink-0 items-center justify-center rounded-full text-xs tabular-nums",
+                    done
+                      ? "bg-clay text-canvas"
+                      : active
+                        ? "border border-clay text-clay"
+                        : "border border-hair-ink",
+                  )}
+                >
+                  {done ? <Check className="size-3.5" strokeWidth={2.5} /> : index + 1}
+                </span>
+                {label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
       <GenerationNotice />
       {profile.dataConsentVersion !== PRIVACY_VERSION && (
         <DataConsent checked={dataConsent} onChange={setDataConsent} />
@@ -613,7 +717,7 @@ export function TryonForm({
       <ProfileSummary profile={profile} editHref={editHref} />
 
       {looks.length > 0 && (
-        <div className="flex flex-wrap gap-2.5">
+        <div className="segmented self-start" role="group" aria-label="Режим примерки">
           {(
             [
               ["full", "Полный образ"],
@@ -623,16 +727,11 @@ export function TryonForm({
             <button
               key={m}
               type="button"
+              aria-pressed={mode === m}
               onClick={() => {
                 setMode(m);
                 setResult(null);
               }}
-              className={
-                "px-5 py-2.5 font-grotesk text-[11px] uppercase tracking-[0.18em] transition-colors " +
-                (mode === m
-                  ? "bg-espresso text-canvas"
-                  : "border border-hair-ink text-ink-soft hover:border-ink")
-              }
             >
               {label}
             </button>
@@ -643,16 +742,14 @@ export function TryonForm({
       {looks.length > 0 && mode === "full" ? (
         <section className="flex flex-col gap-6">
           <div>
-            <p className="border-b border-hair-ink pb-2.5 font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-              Готовые образы · {looks.length}
-            </p>
-            <p className="mt-4 max-w-lg font-grotesk text-sm leading-relaxed text-ink-soft">
+            <BlockTitle count={looks.length}>Готовые образы</BlockTitle>
+            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft">
               Выбери образ целиком — нейросеть наденет на тебя все вещи
               комплекта за один раз: верх, верхнюю одежду, низ, обувь и сумку.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {looks.map((look) => (
               <LookCardButton
                 key={look.lookId}
@@ -668,11 +765,14 @@ export function TryonForm({
           </div>
 
           {selectedLook && (
-            <div className="animate-fade-in-up border-t border-hair-ink pt-6">
-              <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-                Что в образе · {itemsPlural(selectedLook.items.length)}
-              </p>
-              <p className="mt-3 font-grotesk text-[13px] leading-relaxed text-ink-soft">
+            <div className="panel animate-fade-in-up p-5 sm:p-6">
+              <h3 className="font-display text-xl">
+                Что в образе{" "}
+                <span className="font-sans text-[13px] text-ink-soft">
+                  {itemsPlural(selectedLook.items.length)}
+                </span>
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
                 Нажми на любую вещь, чтобы открыть её карточку и рассмотреть
                 отдельно.
               </p>
@@ -683,32 +783,37 @@ export function TryonForm({
                     href={`/catalog/${item.id}`}
                     className="group text-left"
                   >
-                    <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink transition-all group-hover:ring-clay">
+                    <div className="media-well aspect-[3/4] rounded-xl ring-1 ring-transparent transition-shadow group-hover:ring-clay">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={catalogImageUrl(item.imagePath)}
                         alt={item.description ?? item.category}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                        className="media-product absolute inset-0 h-full w-full transition-transform duration-500 group-hover:scale-105"
                       />
-                      <span className="absolute left-0 top-0 bg-espresso px-2 py-1 font-grotesk text-[8px] uppercase tracking-[0.18em] text-canvas-dim">
-                        {CATEGORY_LABELS[item.category as CatalogCategory] ??
-                          item.category}
-                      </span>
                     </div>
-                    <p className="mt-2 line-clamp-2 font-grotesk text-[11px] leading-tight text-ink transition-colors group-hover:text-clay">
+                    <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
+                      {CATEGORY_LABELS[item.category as CatalogCategory] ??
+                        item.category}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-ink transition-colors first-letter:uppercase group-hover:text-clay">
                       {item.description ??
                         CATEGORY_LABELS[item.category as CatalogCategory] ??
                         item.category}
                     </p>
-                    <span className="mt-1 inline-block font-grotesk text-[9px] uppercase tracking-[0.2em] text-ink-soft transition-colors group-hover:text-clay">
-                      к вещи →
-                    </span>
                   </Link>
                 ))}
               </div>
             </div>
           )}
 
+          <TryBar
+            summary={
+              selectedLook
+                ? `Выбран образ · ${itemsPlural(selectedLook.itemCount)}`
+                : "Образ ещё не выбран"
+            }
+          >
           <button
             type="button"
             onClick={handleTryOnLook}
@@ -718,9 +823,13 @@ export function TryonForm({
               limitReached ||
               !consentAccepted
             }
-            className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            className="button-primary w-full sm:w-auto"
           >
-            <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
+            {status === "loading" ? (
+              <span className="size-4 animate-spin rounded-full border-2 border-canvas/40 border-t-canvas" />
+            ) : (
+              <Sparkles className="size-4" strokeWidth={1.75} />
+            )}
             {status === "loading"
               ? "Примеряем образ… обычно 15–40 сек"
               : limitReached
@@ -729,11 +838,12 @@ export function TryonForm({
                   ? `Примерить образ · ${itemsPlural(selectedLook.itemCount)}`
                   : "Выбери образ выше"}
           </button>
+          </TryBar>
         </section>
       ) : (
         <>
           {outerwearId && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hair-ink p-4 text-sm">
+            <div className="panel flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-3 text-[15px]">
               <span>
                 Второй слой:{" "}
                 {tops.find((item) => item.id === outerwearId)?.description ??
@@ -742,7 +852,7 @@ export function TryonForm({
               <button
                 type="button"
                 onClick={() => setOuterwearId(null)}
-                className="min-h-9 text-xs text-clay underline"
+                className="inline-flex min-h-10 items-center text-sm font-medium text-clay underline underline-offset-4"
               >
                 Убрать второй слой
               </button>
@@ -798,10 +908,8 @@ export function TryonForm({
 
           {!anchorId || visibleMatches.length === 0 ? (
             <section>
-              <p className="border-b border-hair-ink pb-2.5 font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-                Дополните образ
-              </p>
-              <p className="mt-4 font-grotesk text-sm text-ink-soft">
+              <BlockTitle>Дополните образ</BlockTitle>
+              <p className="mt-4 text-[15px] text-ink-soft">
                 {!anchorId
                   ? "Выбери вещь выше, чтобы увидеть, что к ней подходит."
                   : "Пока нечего предложить к этому выбору."}
@@ -813,17 +921,18 @@ export function TryonForm({
                 <Link
                   key={item.id}
                   href={`/catalog/${item.id}`}
-                  className="group w-24 shrink-0 sm:w-28"
+                  className="group w-28 shrink-0 sm:w-32"
                 >
-                  <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
+                  <div className="media-well aspect-[3/4] rounded-xl ring-1 ring-hair-ink transition-shadow group-hover:ring-clay">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={catalogImageUrl(item.imagePath)}
                       alt={item.description ?? item.category}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      className="media-product absolute inset-0 h-full w-full transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
-                  <p className="mt-2 font-grotesk text-[10px] uppercase tracking-[0.12em] text-ink-soft">
+                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">
                     {CATEGORY_LABELS[item.category as CatalogCategory] ??
                       item.category}
                   </p>
@@ -832,29 +941,48 @@ export function TryonForm({
             </Carousel>
           )}
 
-          <button
-            type="button"
-            onClick={handleTryOn}
-            disabled={
-              selectedCount === 0 ||
-              status === "loading" ||
-              limitReached ||
-              !consentAccepted
+          <TryBar
+            summary={
+              selectedCount > 0
+                ? `Выбрано: ${itemsPlural(selectedCount)}`
+                : "Пока ничего не выбрано"
             }
-            className="group relative w-full self-start bg-clay px-8 py-4 font-grotesk text-[13px] font-medium uppercase tracking-[0.16em] text-canvas transition-opacity disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
-            <span className="pointer-events-none absolute inset-0 translate-x-1.5 translate-y-1.5 border border-clay transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-disabled:translate-x-1.5 group-disabled:translate-y-1.5" />
-            {status === "loading"
-              ? "Примеряем… обычно 15–40 сек"
-              : limitReached
-                ? "Лимит на сегодня исчерпан"
-                : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
-          </button>
+            <button
+              type="button"
+              onClick={handleTryOn}
+              disabled={
+                selectedCount === 0 ||
+                status === "loading" ||
+                limitReached ||
+                !consentAccepted
+              }
+              className="button-primary w-full sm:w-auto"
+            >
+              {status === "loading" ? (
+                <span className="size-4 animate-spin rounded-full border-2 border-canvas/40 border-t-canvas" />
+              ) : (
+                <Sparkles className="size-4" strokeWidth={1.75} />
+              )}
+              {status === "loading"
+                ? "Примеряем… обычно 15–40 сек"
+                : limitReached
+                  ? "Лимит на сегодня исчерпан"
+                  : `Примерить${selectedCount > 0 ? ` · ${selectedCount}` : ""}`}
+            </button>
+          </TryBar>
         </>
       )}
 
       {usage && (
-        <p className="font-grotesk text-[11px] uppercase tracking-[0.16em] text-ink-soft">
+        <p className="flex items-center gap-2 text-sm text-ink-soft">
+          <span
+            aria-hidden
+            className={cn(
+              "size-2 rounded-full",
+              usage.remaining > 0 ? "bg-sage" : "bg-clay",
+            )}
+          />
           {usage.remaining > 0
             ? `Осталось примерок сегодня: ${usage.remaining} из ${usage.limit}`
             : `Лимит на сегодня исчерпан · ${usage.limit} в день · обновится завтра`}
@@ -864,8 +992,9 @@ export function TryonForm({
       {error && (
         <p
           role="alert"
-          className="rounded-xl border-l-2 border-clay bg-clay/5 px-4 py-3 font-grotesk text-sm text-ink"
+          className="flex items-start gap-3 rounded-2xl border border-clay/30 bg-clay-soft/50 px-4 py-3.5 text-[15px] text-ink"
         >
+          <AlertCircle className="mt-0.5 size-5 shrink-0 text-clay" strokeWidth={1.75} />
           {error}
         </p>
       )}
@@ -874,81 +1003,76 @@ export function TryonForm({
         <section
           role="status"
           aria-live="polite"
-          className="border-t border-hair-ink pt-8"
+          className="flex flex-col gap-4"
         >
-          <p className="mb-4 text-sm leading-relaxed text-ink-soft">
+          <BlockTitle>Результат</BlockTitle>
+          <p className="max-w-xl text-[15px] leading-relaxed text-ink-soft">
             Создаём твой образ. Обычно это занимает 15–40 секунд; при высокой
             нагрузке — дольше. Не закрывай эту страницу.
           </p>
-          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-            Результат
-          </p>
-          <div className="mt-4 grid max-w-2xl grid-cols-2 gap-4">
-            <div className="aspect-[3/4] animate-pulse bg-canvas-2 ring-1 ring-hair-ink" />
-            <div className="aspect-[3/4] animate-pulse bg-canvas-2 ring-1 ring-hair-ink" />
+          <div className="grid max-w-2xl grid-cols-2 gap-4">
+            <div className="skeleton aspect-[3/4] rounded-2xl" />
+            <div className="skeleton aspect-[3/4] rounded-2xl" />
           </div>
         </section>
       )}
 
       {result && status === "idle" && (
-        <section className="animate-fade-in-up border-t border-hair-ink pt-8">
-          <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-            Результат
-          </p>
-          <div className="mt-4 grid max-w-2xl grid-cols-2 gap-4">
-            <div>
-              <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink">
+        <section className="flex animate-fade-in-up flex-col gap-5">
+          <BlockTitle>Результат</BlockTitle>
+          <div className="grid max-w-3xl grid-cols-2 gap-4">
+            <figure>
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-media">
                 <ResultImage src={profile.photoPath ?? ""} alt="До примерки" />
+                <span className="absolute left-3 top-3 rounded-full bg-espresso/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-canvas backdrop-blur-sm">
+                  До
+                </span>
               </div>
-              <p className="mt-2 text-center font-grotesk text-[10px] uppercase tracking-[0.24em] text-ink-soft">
-                До
-              </p>
-            </div>
-            <div>
-              <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-clay">
+            </figure>
+            <figure>
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-media shadow-lift ring-2 ring-clay">
                 <ResultImage
                   src={result.resultImagePath}
                   alt="После примерки"
                 />
+                <span className="absolute left-3 top-3 rounded-full bg-clay px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-canvas">
+                  После
+                </span>
               </div>
-              <p className="mt-2 text-center font-grotesk text-[10px] uppercase tracking-[0.24em] text-clay">
-                После
-              </p>
-            </div>
+            </figure>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              downloadImage(result.resultImagePath, "smart-fashion-tryon.jpg")
-            }
-            className="mt-6 border border-hair-ink px-8 py-3.5 font-grotesk text-[12px] uppercase tracking-[0.16em] text-ink transition-colors hover:border-ink"
-          >
-            Скачать
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                downloadImage(result.resultImagePath, "smart-fashion-tryon.jpg")
+              }
+              className="button-dark"
+            >
+              <Download className="size-4" />
+              Скачать
+            </button>
+          </div>
         </section>
       )}
 
-      <section className="border-t border-hair-ink pt-8">
+      <section className="pt-4">
         {history === null ? (
           <>
-            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-              История примерок
-            </p>
+            <BlockTitle>История примерок</BlockTitle>
             <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto pb-1">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="aspect-[3/4] w-24 shrink-0 animate-pulse bg-canvas-2 sm:w-28"
+                  className="skeleton aspect-[3/4] w-28 shrink-0 rounded-xl sm:w-32"
                 />
               ))}
             </div>
           </>
         ) : history.length === 0 ? (
           <>
-            <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
-              История примерок
-            </p>
-            <p className="mt-4 font-grotesk text-sm text-ink-soft">
+            <BlockTitle>История примерок</BlockTitle>
+            <p className="mt-4 text-[15px] text-ink-soft">
               Пусто — заверши первую примерку, и она появится здесь.
             </p>
           </>
@@ -964,16 +1088,19 @@ export function TryonForm({
                     "smart-fashion-tryon.jpg",
                   )
                 }
-                className="group w-24 shrink-0 text-left sm:w-28"
+                className="group w-28 shrink-0 text-left sm:w-32"
                 title="Скачать"
               >
-                <div className="relative aspect-[3/4] overflow-hidden bg-canvas-2 ring-1 ring-hair-ink transition-all group-hover:ring-clay">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-media ring-1 ring-hair-ink transition-shadow group-hover:ring-clay">
                   <ResultImage
                     src={entry.resultImagePath}
                     alt={`Примерка от ${formatDate(entry.createdAt)}`}
                   />
+                  <span className="absolute bottom-2 right-2 flex size-8 items-center justify-center rounded-full bg-surface/90 opacity-0 shadow-soft transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <Download className="size-3.5" />
+                  </span>
                 </div>
-                <p className="mt-2 font-grotesk text-[10px] text-ink-soft">
+                <p className="mt-2 text-[13px] text-ink-soft">
                   {formatDate(entry.createdAt)}
                 </p>
               </button>

@@ -48,11 +48,15 @@ export function Carousel({
 
   return (
     <section>
-      <div className="flex items-center justify-between gap-4 border-b border-hair-ink pb-2.5">
-        <p className="font-grotesk text-[10px] uppercase tracking-[0.3em] text-ink-soft">
+      <div className="flex items-center justify-between gap-4 border-b border-hair-ink pb-2">
+        <h2 className="flex items-baseline gap-2 font-display text-xl">
           {title}
-          {count !== undefined && <span className="ml-2 text-clay">{count}</span>}
-        </p>
+          {count !== undefined && (
+            <span className="font-sans text-[13px] tabular-nums text-ink-soft">
+              {count}
+            </span>
+          )}
+        </h2>
 
         {hasOverflow && (
           <div className="flex items-center gap-1.5">
@@ -61,7 +65,7 @@ export function Carousel({
               onClick={() => scrollBy(-1)}
               disabled={atStart}
               aria-label={`${title}: назад`}
-              className="flex h-8 w-8 items-center justify-center border border-hair-ink text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas disabled:cursor-not-allowed disabled:border-hair-ink disabled:bg-transparent disabled:text-ink-soft/40"
+              className="flex size-10 items-center justify-center rounded-full border border-hair-ink text-ink transition-colors hover:border-espresso hover:bg-espresso hover:text-canvas disabled:pointer-events-none disabled:opacity-35"
             >
               <ChevronLeft className="h-4 w-4" strokeWidth={1.75} />
             </button>
@@ -70,7 +74,7 @@ export function Carousel({
               onClick={() => scrollBy(1)}
               disabled={atEnd}
               aria-label={`${title}: вперёд`}
-              className="flex h-8 w-8 items-center justify-center border border-hair-ink text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas disabled:cursor-not-allowed disabled:border-hair-ink disabled:bg-transparent disabled:text-ink-soft/40"
+              className="flex size-10 items-center justify-center rounded-full border border-hair-ink text-ink transition-colors hover:border-espresso hover:bg-espresso hover:text-canvas disabled:pointer-events-none disabled:opacity-35"
             >
               <ChevronRight className="h-4 w-4" strokeWidth={1.75} />
             </button>
@@ -82,14 +86,14 @@ export function Carousel({
         <div
           ref={trackRef}
           onScroll={measure}
-          className="no-scrollbar flex gap-3 overflow-x-auto scroll-smooth pb-1 pt-4"
+          className="no-scrollbar -mx-1 flex snap-x gap-3 overflow-x-auto scroll-smooth px-1 pb-2 pt-4 *:snap-start sm:gap-4"
         >
           {children}
         </div>
 
         {/* Растушёвка у края — подсказка, что лента продолжается */}
         {!atEnd && (
-          <span className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-canvas to-transparent" />
+          <span className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-canvas to-transparent" />
         )}
       </div>
     </section>
